@@ -153,6 +153,11 @@ T_exp F_exp(F_access access,T_exp frame_ptr)
 	}
 }
 
+T_exp F_externalCall(string s,T_expList args)
+{
+	return T_Call(T_Name(Temp_namedlabel(s)),args);
+}
+
 
 
 static Temp_temp rbp = NULL;

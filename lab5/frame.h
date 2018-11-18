@@ -71,6 +71,8 @@ F_accessList F_AccessList(F_access head,F_accessList tail);
 
 T_exp F_exp(F_access access,T_exp frame_ptr);
 
+T_exp F_externalCall(string s,T_expList args);
+
 Temp_temp F_FP(void);
 
 Temp_temp F_RV(void);

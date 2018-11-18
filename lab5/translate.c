@@ -262,10 +262,52 @@ Tr_exp Tr_Calculate(A_oper op,Tr_exp left,Tr_exp right)
 
 Tr_exp Tr_Condition(A_oper op,Tr_exp left,Tr_exp right)
 {
-	struct Cx cx;
 	T_stm stm;
 	switch(op)
 	{
-		
+		case A_eqOp:
+		{
+			stm = T_Cjump(T_eq,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			break;
+		}
+		case A_neqOp:
+		{
+			stm = T_Cjump(T_ne,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			break;
+		}
+		case A_ltOp:
+		{
+			stm = T_Cjump(T_lt,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			break;
+		}
+		case A_leOp:
+		{
+			stm = T_Cjump(T_le,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			break;
+		}
+		case A_gtOp:
+		{
+			stm = T_Cjump(T_gt,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			break;
+		}
+		case A_geOp:
+		{
+			stm = T_Cjump(T_ge,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			break;
+		}
+		default:
+		{
+			assert(0);
+		}
 	}
+	patchList trues = PatchList(&stm->u.CJUMP.true,NULL);
+	patchList falses = PatchList(&stm->u.CJUMP.false,NULL);
+	return Tr_Cx(trues,falses,stm);
+}
+
+Tr_exp Tr_Recordexp(Tr_expList fields)
+{
+	int count = 0;
+	for(Tr_expList cnt_field = fields;cnt_field;cnt_field = cnt_field->tail,count++);
+	//TO BE CONTINUED
 }

@@ -265,3 +265,55 @@ struct expty transOpexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_labe
 	return expTy(tropexp,Ty_Int());
 }
 
+struct expty transRecordexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_label label)
+{
+	S_symbol ty_name = a->u.record.typ;
+	Ty_ty x = actual_ty(S_look(tenv,ty_name));
+	if(!x)
+	{
+		EM_error(a->pos,"undefined type %s",S_name(ty_name));
+		return expTy(NULL,Ty_Int());
+	}
+	if(actual_ty(x)->kind != Ty_record)
+	{
+		EM_error(a->pos,"not a record type");
+		return expTy(NULL,x);
+	}
+	else
+	{
+		Tr_expList expfields = Tr_ExpList(NULL,NULL);
+		Tr_expList tail = expfields;
+		A_efieldList efields = a->u.record.fields;
+		Ty_fieldList fields = x->u.record;
+		A_efield efield;
+		Ty_field field;
+		while(efields != NULL)
+		{
+			
+			if(fields == NULL)
+			{
+				EM_error(a->pos,"Too many efields in %s",S_name(ty_name));
+				break;
+			}
+			
+			efield = efields->head;
+			field = fields->head;
+			struct expty exp = transExp(venv,tenv,efield->exp,l,label);
+			if(!cmpty(exp.ty,field->ty) )
+			{
+				EM_error(a->pos,"record type unmatched");
+			}
+			efields=efields->tail;
+			fields=fields->tail;
+			tail->tail = Tr_ExpList(exp.exp,NULL);
+			tail = tail->tail;
+		}
+		if(fields != NULL)
+		{
+			EM_error(a->pos,"Too little efields in %s",S_name(ty_name));
+		}
+		expfields = expfields->tail;
+		Tr_exp trrecord = Tr_Recordexp(expfields);
+		return expTy(trrecord,x);
+	}
+}
