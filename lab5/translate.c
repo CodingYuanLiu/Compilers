@@ -115,10 +115,10 @@ static T_exp Tr_unEx(Tr_exp e)
 			return 
 			T_Eseq(T_Move(r,T_Const(1)),
 				T_Eseq(e->u.cx.stm,
-					T_Eseq(T_label(f),
+					T_Eseq(T_Label(f),
 						T_Eseq(T_Move(r,T_Const(0)),
-							T_Eseq(T_label(t),
-								T_temp(r))))));
+							T_Eseq(T_Label(t),
+								T_Temp(r))))));
 		}
 	}
 	assert(0);//Can't get here.
@@ -141,6 +141,25 @@ static T_stm Tr_unNx(Tr_exp e)
 	assert(0);
 }
 
+static struct Cx Tr_unCx(Tr_exp e)
+{
+	switch(e->kind)
+	{
+		case Tr_cx:
+			return e->u.cx;
+		case Tr_ex:
+		{
+			struct Cx uncx;
+			uncx.stm = T_Cjump(T_ne,e->u.ex,0,NULL,NULL);
+			uncx.trues = PatchList(&(uncx.stm->u.CJUMP.true),NULL);
+			uncx.falses = PatchList(&(uncx.stm->u.CJUMP.false),NULL );
+			return uncx;
+		}
+		case Tr_nx:
+			printf("Error: nx can't be a test exp.");
+	}
+	assert(0);
+}
 
 Tr_level Tr_outermost(void)
 {
@@ -162,10 +181,18 @@ Tr_level Tr_newLevel(Tr_level parent, Temp_label name, U_boolList formals)
 
 void Tr_procEntryExit(Tr_level level,Tr_exp func_body)
 {
-	T_stm stm = T_Move(F_RAX(),unEx(func_body));
+	T_stm stm = T_Move(F_RAX(),Tr_unEx(func_body));
 	F_frag head = F_ProcFrag(stm,level->frame);
 	//The added frag is the head of the new frags. 
 	frags = F_FragList(head,frags);
+}
+
+Tr_access Tr_allocLocal(Tr_level level,bool escape)
+{
+	Tr_access access = checked_malloc(sizeof(*access));
+	access->access = F_allocLocal(level->frame,escape);
+	access->level = level;
+	return access;
 }
 
 Tr_exp Tr_simpleVar(Tr_access access,Tr_level level)
@@ -186,7 +213,7 @@ Tr_exp Tr_fieldVar(Tr_exp loc,int order)
 	{
 		printf("Error: fieldVar's loc must be an expression");
 	}
-	return T_Mem(T_Binop(T_plus,unEx(loc),T_Const(order * wordsize)));
+	return T_Mem(T_Binop(T_plus,Tr_unEx(loc),T_Const(order * wordsize)));
 }
 
 Tr_exp Tr_subscriptVar(Tr_exp loc,Tr_exp subscript)
@@ -195,8 +222,8 @@ Tr_exp Tr_subscriptVar(Tr_exp loc,Tr_exp subscript)
 	{
 		printf("Error: subscriptVar's loc or subscript must be an expression");
 	}
-	return T_Mem(T_Binop(T_plus,unEx(loc),
-		T_Binop(T_mul,unEx(subscript),T_Const(wordsize))));
+	return T_Mem(T_Binop(T_plus,Tr_unEx(loc),
+		T_Binop(T_mul,Tr_unEx(subscript),T_Const(wordsize))));
 }
 
 Tr_exp Tr_Nil()
@@ -339,5 +366,58 @@ T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size)
 			T_Move(T_Binop(T_plus,T_Temp(r),T_Const((offset+1)*wordsize)),Tr_unEx(fields->tail->head))
 		);
 	}
+}
+
+Tr_exp Tr_Assign(Tr_exp var,Tr_exp exp)
+{
+	return Tr_Nx(T_Move(Tr_unEx(var),Tr_unEx(exp)));
+}
+
+Tr_exp Tr_If(Tr_exp test,Tr_exp then,Tr_exp elsee)
+{
+	struct Cx test_ = Tr_unCx(test);
+	Temp_temp r = Temp_newtemp();
+	Temp_label truelabel = Temp_newlabel();
+	Temp_label falselabel = Temp_newlabel();
+	doPatch(test_.trues,truelabel);
+	doPatch(test_.falses,falselabel);
+	if(elsee)
+	{
+		Temp_label meeting = Temp_newlabel();
+		T_exp e = 
+		T_Eseq(test_.stm,
+			T_Eseq(T_Label(truelabel),
+				T_Eseq(T_Move(T_Temp(r),Tr_unEx(then)),
+					T_Eseq(T_Jump(T_Name(meeting),Temp_LabelList(meeting,NULL)),
+						T_Eseq(T_Label(falselabel),
+							T_Eseq(T_Move(T_Temp(r),Tr_unEx(elsee)),
+								T_Eseq(T_Jump(T_Name(meeting),Temp_LabelList(meeting,NULL)),
+									T_Eseq(T_Label(meeting),
+										T_Temp(r)))))))));
+		return Tr_Ex(e);
+	}
+	else
+	{
+		T_stm s = 
+		T_Seq(test_.stm,
+			T_Seq(T_Label(truelabel),
+				T_Seq(Tr_Nx(then),T_Label(falselabel))));
+		return Tr_Nx(s);
+	}
+}
+
+Tr_exp Tr_While(Tr_exp test,Tr_exp body,Temp_label done)
+{
+	Temp_label bodyy = Temp_newlabel(), tst = Temp_newlabel();
+	struct Cx test_ = Tr_unCx(test);
+	doPatch(&test_.trues,bodyy);
+	doPatch(&test_.falses,done);
+	T_stm s = T_Seq(T_Label(tst),
+	T_Seq(test_.stm,
+		T_Seq(T_label(bodyy),
+			T_Seq(Tr_unNx(body),
+				T_Seq(T_Jump(T_Name(test),Temp_LabelList(test,NULL)),
+					T_Label(done))))));
+	return Tr_Nx(s);
 }
 

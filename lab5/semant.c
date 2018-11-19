@@ -350,11 +350,70 @@ struct expty transAssignexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_la
 		}
 	}
 	A_exp exp=a->u.assign.exp;
-	Ty_ty var_ty = transVar(venv,tenv,v,l,label).ty;
-	Ty_ty exp_ty = transExp(venv,tenv,exp,l,label).ty;
-	if(!cmpty(var_ty,exp_ty))
+	struct expty var_ = transVar(venv,tenv,v,l,label);
+	struct expty exp_ = transExp(venv,tenv,exp,l,label);
+	if(!cmpty(var_.ty,exp_.ty))
 	{
 		EM_error(a->pos,"unmatched assign exp");
 	}
-	return expTy(NULL,actual_ty(var_ty));
+	Tr_exp trassign = Tr_Assign(var_.exp,exp_.exp);
+	return expTy(NULL,actual_ty(var_.ty));
+}
+
+struct expty transIfexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
+{
+	struct expty test = transExp(venv,tenv,a->u.iff.test,l,label);
+	struct expty then = transExp(venv,tenv,a->u.iff.then,l,label);
+	Tr_exp tr_if;
+	if(a->u.iff.elsee->kind != A_nilExp)// Else expression exists
+	{
+		struct expty elsee=transExp(venv,tenv,a->u.iff.elsee,l,label);
+		if(!cmpty(then.ty,elsee.ty))
+		{
+			EM_error(a->pos,"then exp and else exp type mismatch");
+		}
+		tr_if = Tr_If(test.exp,then.exp,elsee.exp);
+	}
+	else if(then.ty->kind != Ty_void)// Then expression must be void without else.
+	{
+		EM_error(a->pos,"if-then exp's body must produce no value");
+		tr_if = Tr_If(test.exp,then.exp,NULL);
+	}
+	return expTy(tr_if,actual_ty(then.ty));
+}
+
+struct expty transWhileexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
+{
+	Temp_label done = Temp_newlabel();
+	struct expty test = transExp(venv,tenv,a->u.whilee.test,l,label);
+	struct expty body = transExp(venv,tenv,a->u.whilee.body,l,done);
+	if(body.ty->kind != Ty_void)
+	{
+		EM_error(a->pos,"while body must produce no value");
+	}
+	return expTy(Tr_While(test.exp,body.exp,done),actual_ty(body.ty));
+}
+
+struct expty transForexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
+{
+	S_beginScope(venv);
+	struct expty lo=transExp(venv,tenv,a->u.forr.lo,l,label);
+	struct expty hi=transExp(venv,tenv,a->u.forr.hi,l,label);
+	if(!cmpty(lo.ty,Ty_Int()) || !cmpty(hi.ty,Ty_Int()))
+	{
+		EM_error(a->u.forr.lo->pos,"for exp's range type is not integer");
+	}
+	E_enventry rovar=E_VarEntry(Tr_allocLocal(l,a->u.forr.escape),lo.ty);
+	rovar->readonly=1;
+	S_enter(venv,a->u.forr.var,rovar);
+	Temp_label done = Temp_newlabel();
+	struct expty body = transExp(venv,tenv,a->u.forr.body,l,done);
+	//TO BE CONTINUED.
+	
+	if(body.ty->kind != Ty_void)
+	{
+		EM_error(a->pos,"for body must produce no value");
+	}
+	S_endScope(venv);
+	return expTy(NULL,actual_ty(body.ty));
 }

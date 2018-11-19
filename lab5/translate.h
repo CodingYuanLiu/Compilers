@@ -65,6 +65,10 @@ Tr_exp Tr_Calculate(A_oper op,Tr_exp left,Tr_exp right);
 Tr_exp Tr_Condition(A_oper op,Tr_exp left,Tr_exp right);
 Tr_exp Tr_Recordexp(Tr_expList fields);
 T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size);
+Tr_exp Tr_Assign(Tr_exp var,Tr_exp exp);
+Tr_exp Tr_If(Tr_exp test,Tr_exp then,Tr_exp elsee);
+Tr_exp Tr_While(Tr_exp test,Tr_exp body,Temp_label done);
+
 
 F_fragList Tr_getresult(){ return frags;}
 
