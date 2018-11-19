@@ -98,7 +98,7 @@ static Tr_exp Tr_Cx(patchList trues,patchList falses,T_stm stm)
 	return cx;
 }
 
-static T_exp unEx(Tr_exp e)
+static T_exp Tr_unEx(Tr_exp e)
 {
 	switch(e->kind)
 	{
@@ -124,7 +124,7 @@ static T_exp unEx(Tr_exp e)
 	assert(0);//Can't get here.
 }
 
-static T_stm unNx(Tr_exp e)
+static T_stm Tr_unNx(Tr_exp e)
 {
 	switch(e->kind)
 	{
@@ -309,5 +309,35 @@ Tr_exp Tr_Recordexp(Tr_expList fields)
 {
 	int count = 0;
 	for(Tr_expList cnt_field = fields;cnt_field;cnt_field = cnt_field->tail,count++);
-	//TO BE CONTINUED
+	Temp_temp r = Temp_newtemp();
+	T_stm stm = 
+	T_Move(
+		T_Temp(r),
+		T_Call(T_Name(Temp_namedlabel("malloc"))
+			,T_Const(count*wordsize)
+		)
+	);
+	stm = T_Seq(stm,Tr_mk_record_array(fields,r,0,count));
+	return T_Eseq(stm,T_Temp(r));
 }
+
+T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size)
+{
+	if(offset < size-2)
+	{
+		return 
+		T_Seq(
+			T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
+			Tr_mk_record_array(fields->tail,r,offset+1,size)
+		);
+	}
+	else
+	{
+		return
+		T_Seq(
+			T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
+			T_Move(T_Binop(T_plus,T_Temp(r),T_Const((offset+1)*wordsize)),Tr_unEx(fields->tail->head))
+		);
+	}
+}
+

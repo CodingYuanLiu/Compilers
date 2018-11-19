@@ -317,3 +317,44 @@ struct expty transRecordexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_
 		return expTy(trrecord,x);
 	}
 }
+
+struct expty transSeqexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
+{
+	A_expList exps=a->u.seq;
+	if(!exps)
+	{
+		return expTy(NULL,Ty_Void());
+	}
+	else
+	{
+		struct expty result;
+		while(exps)
+		{
+			result = transExp(venv,tenv,exps->head,l,label);
+			exps = exps->tail;
+		}
+		return result;
+	}
+}
+
+struct expty transAssignexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
+{
+	
+	A_var v=a->u.assign.var;
+	if(v->kind == A_simpleVar)
+	{
+		E_enventry x = S_look(venv,v->u.simple);
+		if(x->readonly == 1)
+		{
+			EM_error(a->pos,"loop variable can't be assigned");
+		}
+	}
+	A_exp exp=a->u.assign.exp;
+	Ty_ty var_ty = transVar(venv,tenv,v,l,label).ty;
+	Ty_ty exp_ty = transExp(venv,tenv,exp,l,label).ty;
+	if(!cmpty(var_ty,exp_ty))
+	{
+		EM_error(a->pos,"unmatched assign exp");
+	}
+	return expTy(NULL,actual_ty(var_ty));
+}
