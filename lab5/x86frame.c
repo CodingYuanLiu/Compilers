@@ -66,25 +66,83 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 {
 	F_frame newframe=checked_malloc(sizeof(*newframe));
 	newframe->name=name;
-	F_accessList formals = NULL;
-	T_stm view_shift = NULL;
+	F_accessList formals = F_AccessList(NULL,NULL);
+	F_accessList ftail = formals;
+	T_stmList view_shift = T_StmList(NULL,NULL);
+	T_stmList tail = view_shift;
+	
+	newframe->s_offset = 0;
+	
 	bool escape;
 	Temp_temp temp;
 
-	//The first formal is the static link.
-	int formal_off = 2 * wordsize;//16(%rbp) stores the static link.
-	//(%rbp) is old rbp value.8(%rbp) is the return address.
+	int formal_off = wordsize;// The seventh arg was located at 8(%rbp)
 
 	int num=1; //Marks the sequence of the formals.
 	/*If the formal is escape, then allocate it on the frame.
 	  Else,allocate it on the temp.*/
-	for(;escapes;escapes=escapes->tail)
+	for(;escapes;escapes=escapes->tail,num++)
 	{
 		escape = escapes->head;
 		if(escape)
-		{
-			formals = F_AccessList(InFrame(formal_off),formals);//sequence of formals here is reversed.
-			formal_off += wordsize;
+		{	
+			switch(num)
+			{
+				case 1: 
+				{
+					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num * wordsize)),T_Temp(F_RDI())),NULL);
+					newframe->s_offset -= wordsize;
+					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
+					ftail = ftail->tail; tail = tail->tail;
+					break;
+				}
+				case 2:
+				{ 
+					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_RSI())),NULL);
+					newframe->s_offset -= wordsize;
+					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
+					ftail = ftail->tail; tail = tail->tail;
+					break;
+				}
+				case 3: 
+				{
+					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_RDX())),NULL);
+					newframe->s_offset -= wordsize;
+					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
+					ftail = ftail->tail; tail = tail->tail;
+					break;
+				}
+				case 4: 
+				{
+					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_RCX())),NULL);
+					newframe->s_offset -= wordsize;
+					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
+					ftail = ftail->tail; tail = tail->tail;
+					break;
+				}
+				case 5: 
+				{
+					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_R8())),NULL);
+					newframe->s_offset -= wordsize;
+					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
+					ftail = ftail->tail; tail = tail->tail;
+					break;
+				}
+				case 6: 
+				{
+					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_R9())),NULL);
+					newframe->s_offset -= wordsize;
+					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
+					ftail = ftail->tail; tail = tail->tail;
+					break;
+				}
+				default:
+				{
+					ftail->tail = F_AccessList(InFrame(formal_off),NULL);//sequence of formals here is reversed.
+					ftail = ftail->tail;
+					formal_off += wordsize;
+				}
+			}
 		}
 		else
 		{
@@ -99,13 +157,14 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 				case 6: view_shift=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R9())),view_shift);break;
 				default: printf("Frame: the 7-nth formal should be passed on frame.");
 			}
-			num += 1;
 			formals = F_AccessList(InReg(temp),formals);
 		}
 	}
+	formals = formals->tail;
+	view_shift = view_shift->tail;
 	newframe->formals = formals;
 	newframe->locals = NULL;
-	newframe->s_offset = 0;
+	newframe->view_shift = view_shift;
 	return newframe;
 }
 

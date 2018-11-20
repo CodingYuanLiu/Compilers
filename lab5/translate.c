@@ -200,7 +200,7 @@ Tr_exp Tr_simpleVar(Tr_access access,Tr_level level)
 	T_exp frame = T_Temp(F_FP());
 	while(level != access->level)
 	{
-		frame = T_Mem(T_Binop(T_plus,frame,T_Const(2 * wordsize)));//static link is at 16(%rbp);
+		frame = T_Mem(T_Binop(T_plus,frame,T_Const(-wordsize)));//static link is the first escaped arg;
 		level = level->parent;
 	}
 	frame = F_exp(access->access,frame);
@@ -249,7 +249,7 @@ Tr_exp Tr_Call(Temp_label label,Tr_expList args,Tr_level caller,Tr_level callee)
 	T_exp staticlink = T_Temp(F_FP());
 	while(caller != callee)
 	{
-		staticlink = T_Mem(T_Binop(T_plus,staticlink,T_Const(2*wordsize)));
+		staticlink = T_Mem(T_Binop(T_plus,staticlink,T_Const(-wordsize)));
 		caller = caller->parent;
 	}
 	T_expList targs = T_ExpList(NULL,NULL);
@@ -421,3 +421,38 @@ Tr_exp Tr_While(Tr_exp test,Tr_exp body,Temp_label done)
 	return Tr_Nx(s);
 }
 
+Tr_exp Tr_For(Tr_access loopv,Tr_exp lo,Tr_exp hi,Tr_exp body,Tr_level l,Temp_label done)
+{
+	//Caution:check lo<=hi FIRST!
+	//check if i<hi before i++;
+	Temp_label bodylabel = Temp_newlabel();
+	Temp_label incloop_label = Temp_newlabel();
+
+	//Stm makes i++
+	T_stm incloop;//Stm that makes i++;
+	T_exp loopvar = F_exp(loopv->access,T_Temp(F_FP()));
+	incloop = T_Move(loopvar,
+		T_Binop(T_plus,loopvar,T_Const(1)));
+
+	/*if(i < hi) {i++; goto body;}*/
+	T_stm test = T_Seq(T_Cjump(T_le,Tr_simpleVar(loopv,l),hi,incloop_label,done),
+	T_Seq(T_Label(incloop_label),
+		T_Seq(incloop,
+			T_Jump(T_Name(bodylabel),Temp_LabelList(bodylabel,NULL)))));
+
+	//Test if lo<=hi;
+	T_stm checklohi = T_Cjump(T_le,Tr_unEx(lo),Tr_unEx(hi),bodylabel,done);
+
+	//Concatenate together.
+	T_stm forr = T_Seq(checklohi,
+	T_Seq(T_Label(body),
+		T_Seq(Tr_unEx(body),
+			T_Seq(test,T_Label(done)))));
+	
+	return Tr_Nx(forr);
+}
+
+Tr_exp Tr_Break(Temp_label done)
+{
+	return Tr_Nx(T_Jump(T_Name(done),Temp_LabelList(done,NULL)));
+}

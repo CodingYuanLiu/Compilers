@@ -68,8 +68,8 @@ T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size);
 Tr_exp Tr_Assign(Tr_exp var,Tr_exp exp);
 Tr_exp Tr_If(Tr_exp test,Tr_exp then,Tr_exp elsee);
 Tr_exp Tr_While(Tr_exp test,Tr_exp body,Temp_label done);
-
-
+Tr_exp Tr_For(Tr_access loopv,Tr_exp lo, Tr_exp hi, Tr_exp body,Tr_level l ,Temp_label done);
+Tr_exp Tr_Break(Temp_label done);
 F_fragList Tr_getresult(){ return frags;}
 
 #endif

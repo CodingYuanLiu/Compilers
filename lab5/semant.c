@@ -31,7 +31,7 @@ struct expty expTy(Tr_exp exp, Ty_ty ty)
 }
 
 F_fragList SEM_transProg(A_exp exp){
-
+	//Maybe needs improving
 	Tr_level mainframe = Tr_outermost();
 	Temp_label mainlabel = Temp_newlabel();
 
@@ -396,6 +396,7 @@ struct expty transWhileexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_lab
 
 struct expty transForexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
 {
+	Temp_label done = Temp_newlabel();
 	S_beginScope(venv);
 	struct expty lo=transExp(venv,tenv,a->u.forr.lo,l,label);
 	struct expty hi=transExp(venv,tenv,a->u.forr.hi,l,label);
@@ -403,17 +404,24 @@ struct expty transForexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label
 	{
 		EM_error(a->u.forr.lo->pos,"for exp's range type is not integer");
 	}
-	E_enventry rovar=E_VarEntry(Tr_allocLocal(l,a->u.forr.escape),lo.ty);
-	rovar->readonly=1;
+
+	Tr_access loopv = Tr_allocLocal(l,a->u.forr.escape);
+	E_enventry rovar=E_ROVarEntry(loopv,lo.ty);
 	S_enter(venv,a->u.forr.var,rovar);
-	Temp_label done = Temp_newlabel();
+
 	struct expty body = transExp(venv,tenv,a->u.forr.body,l,done);
-	//TO BE CONTINUED.
-	
+
+	Tr_exp trfor = Tr_For(loopv,lo.exp,hi.exp,body.exp,l,done);
 	if(body.ty->kind != Ty_void)
 	{
 		EM_error(a->pos,"for body must produce no value");
 	}
 	S_endScope(venv);
-	return expTy(NULL,actual_ty(body.ty));
+	return expTy(trfor,actual_ty(body.ty));
+}
+
+struct expty transBreakexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_label done)
+{
+
+	return expTy(Tr_Break(done),Ty_Void());
 }

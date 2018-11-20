@@ -52,7 +52,7 @@ struct F_frame_{
 	F_accessList formals;
 	F_accessList locals;
 	T_stmList view_shift;
-	int s_offset;
+	int s_offset;//Which is commonly a minus number.
 };
 
 F_frame F_newFrame(Temp_label name,U_boolList escapes);
