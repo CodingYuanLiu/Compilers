@@ -425,3 +425,57 @@ struct expty transBreakexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_l
 
 	return expTy(Tr_Break(done),Ty_Void());
 }
+
+struct expty transLetexp(S_table venv, S_table tenv, A_exp a,Tr_level l, Temp_label label)
+{
+	struct expty exp;
+	A_decList d;
+	S_beginScope(venv);
+	S_beginScope(tenv);
+	for(d=a->u.let.decs ;d ; d=d->tail)
+	{
+		transDec(venv,tenv,d->head,l,label);
+	}
+	exp=transExp(venv,tenv,a->u.let.body,l,label);
+	S_endScope(venv);
+	S_endScope(tenv);
+	return expTy(exp.exp,actual_ty(exp.ty));
+}
+
+struct expty transArrayexp(S_table venv,S_table tenv, A_exp a,Tr_level l,Temp_label label)
+{
+	Ty_ty ty_array = actual_ty(S_look(tenv,a->u.array.typ));
+	if(!ty_array)
+	{
+		EM_error(a->pos,"undefined type %s",S_name(a->u.array.typ));
+		return expTy(NULL,Ty_Int());
+	}
+	if(ty_array->kind!=Ty_array)
+	{
+		EM_error(a->pos,"not array type");
+	}
+	struct expty size = transExp(venv,tenv,a->u.array.size,l,label);
+	if(size.ty->kind != Ty_int)
+	{
+		EM_error(a->u.array.size->pos,"type of size expression should be int");
+	}
+	struct expty init = transExp(venv,tenv,a->u.array.init,l,label);
+	if(!cmpty(init.ty,ty_array->u.array))
+	{
+		EM_error(a->u.array.size->pos,"type mismatch");
+	}
+
+	Tr_exp trarray = Tr_Array(size.exp,init.exp);
+	return expTy(trarray,ty_array->u.array);
+}
+
+Tr_exp transDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label)
+{
+	switch(d->kind)
+	{
+		//TO BE CONTINUED
+		case A_functionDec:{transFunctionDec(venv,tenv,d,l,label);break;}
+		case A_varDec:{transVarDec(venv,tenv,d,l,label);break;}
+		case A_typeDec:{transTypeDec(venv,tenv,d,l,label);break;}
+	}
+}

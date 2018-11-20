@@ -70,6 +70,7 @@ Tr_exp Tr_If(Tr_exp test,Tr_exp then,Tr_exp elsee);
 Tr_exp Tr_While(Tr_exp test,Tr_exp body,Temp_label done);
 Tr_exp Tr_For(Tr_access loopv,Tr_exp lo, Tr_exp hi, Tr_exp body,Tr_level l ,Temp_label done);
 Tr_exp Tr_Break(Temp_label done);
+Tr_exp Tr_Array(Tr_exp size,Tr_exp init);
 F_fragList Tr_getresult(){ return frags;}
 
 #endif

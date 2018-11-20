@@ -456,3 +456,12 @@ Tr_exp Tr_Break(Temp_label done)
 {
 	return Tr_Nx(T_Jump(T_Name(done),Temp_LabelList(done,NULL)));
 }
+
+Tr_exp Tr_Array(Tr_exp size,Tr_exp init)
+{
+	//Call initArray to create an array.
+	T_exp callinitArray = F_externalCall(T_Name("initArray"),
+	T_ExpList(Tr_unEx(size),
+		T_ExpList(Tr_unEx(init),NULL)));
+	return Tr_Ex(callinitArray);
+}
