@@ -171,7 +171,7 @@ static struct Cx Tr_unCx(Tr_exp e)
 Tr_level Tr_outermost(void)
 {
 	static struct Tr_level_ outermost;
-	outermost.frame = NULL;
+	outermost.frame = F_newFrame(Temp_namedlabel("main"),NULL);
 	outermost.parent = NULL;
 	return &outermost; 
 }
@@ -254,7 +254,7 @@ Tr_exp Tr_String(string str)
 Tr_exp Tr_Call(Temp_label label,Tr_expList args,Tr_level caller,Tr_level callee)
 {
 	T_exp staticlink = T_Temp(F_FP());
-	while(caller != callee)
+	while(caller != callee->parent)
 	{
 		staticlink = T_Mem(T_Binop(T_plus,staticlink,T_Const(-wordsize)));
 		caller = caller->parent;

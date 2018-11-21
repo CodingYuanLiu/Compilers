@@ -207,7 +207,7 @@ struct expty transCallexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_labe
 	Tr_expList tail = list;
 	if(x==NULL || x->kind != E_funEntry)
 	{
-		EM_error(a->pos,"undefined function %s",S_name(func_name));
+		EM_error(a->pos,"undefined function %s,%d",S_name(func_name));
 		return expTy(NULL,Ty_Void());
 	}
 	else
@@ -225,7 +225,7 @@ struct expty transCallexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_labe
 				EM_error(arg->pos,"para type mismatch");
 			}
 			tail->tail=Tr_ExpList(exp.exp,NULL);
-			tail = tail->tail;
+			tail = tail->tail;	
 		}
 		if(args != NULL)
 		{
@@ -320,6 +320,7 @@ struct expty transRecordexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_
 struct expty transSeqexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
 {
 	A_expList exps=a->u.seq;
+	Tr_exp trexp = Tr_Nil();
 	if(!exps)
 	{
 		return expTy(NULL,Ty_Void());
@@ -330,9 +331,10 @@ struct expty transSeqexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label
 		while(exps)
 		{
 			result = transExp(venv,tenv,exps->head,l,label);
+			trexp = Tr_Seq(trexp,result.exp);
 			exps = exps->tail;
 		}
-		return result;
+		return expTy(trexp,result.ty);
 	}
 }
 
@@ -467,7 +469,7 @@ struct expty transArrayexp(S_table venv,S_table tenv, A_exp a,Tr_level l,Temp_la
 	}
 
 	Tr_exp trarray = Tr_Array(size.exp,init.exp);
-	return expTy(trarray,ty_array->u.array);
+	return expTy(trarray,ty_array);
 }
 
 Tr_exp transDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label)
