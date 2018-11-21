@@ -37,7 +37,7 @@ F_fragList F_FragList(F_frag head, F_fragList tail);
 
 /* declaration for frames*/
 
-extern const int wordsize = 8;
+static const int wordsize = 8;
 //varibales
 struct F_access_ {
 	enum {inFrame, inReg} kind;

@@ -204,7 +204,7 @@ T_exp F_exp(F_access access,T_exp frame_ptr)
 {
 	if(access->kind = inFrame)
 	{
-		return T_Mem(T_Binop(T_plus,frame_ptr,access->u.offset));
+		return T_Mem(T_Binop(T_plus,frame_ptr,T_Const(access->u.offset)));
 	}
 	else
 	{

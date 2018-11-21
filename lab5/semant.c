@@ -10,7 +10,6 @@
 #include "semant.h"
 #include "helper.h"
 #include "translate.h"
-
 /*Lab5: Your implementation of lab5.*/
 
 struct expty 
@@ -166,7 +165,7 @@ struct expty transExp(S_table venv, S_table tenv, A_exp a, Tr_level l, Temp_labe
 {
 	switch(a->kind)
 	{
-		case A_varExp:{return transVar(venv,tenv,a,l,label);}
+		case A_varExp:{return transVar(venv,tenv,a->u.var,l,label);}
 		case A_nilExp:{return transNilexp(venv,tenv,a,l,label);}
 		case A_intExp:{return transIntexp(venv,tenv,a,l,label);}
 		case A_stringExp:{return transStringexp(venv,tenv,a,l,label);}
@@ -428,18 +427,20 @@ struct expty transBreakexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_l
 
 struct expty transLetexp(S_table venv, S_table tenv, A_exp a,Tr_level l, Temp_label label)
 {
-	struct expty exp;
 	A_decList d;
 	S_beginScope(venv);
 	S_beginScope(tenv);
+	/*Caution:semant.c shouldn't include tree.h module. Modify this later */
+	Tr_exp trSeq = Tr_Nil();//An empty stm
 	for(d=a->u.let.decs ;d ; d=d->tail)
 	{
-		transDec(venv,tenv,d->head,l,label);
+		trSeq = Tr_Seq(trSeq,transDec(venv,tenv,d->head,l,label));
 	}
-	exp=transExp(venv,tenv,a->u.let.body,l,label);
+	struct expty letbody=transExp(venv,tenv,a->u.let.body,l,label);
+	Tr_exp trlet = Tr_Seq(trSeq,letbody.exp);
 	S_endScope(venv);
 	S_endScope(tenv);
-	return expTy(exp.exp,actual_ty(exp.ty));
+	return expTy(trlet,actual_ty(letbody.ty));
 }
 
 struct expty transArrayexp(S_table venv,S_table tenv, A_exp a,Tr_level l,Temp_label label)
@@ -474,8 +475,261 @@ Tr_exp transDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label)
 	switch(d->kind)
 	{
 		//TO BE CONTINUED
-		case A_functionDec:{transFunctionDec(venv,tenv,d,l,label);break;}
-		case A_varDec:{transVarDec(venv,tenv,d,l,label);break;}
-		case A_typeDec:{transTypeDec(venv,tenv,d,l,label);break;}
+		case A_functionDec:{return transFunctionDec(venv,tenv,d,l,label);break;}
+		case A_varDec:{return transVarDec(venv,tenv,d,l,label);break;}
+		case A_typeDec:{return transTypeDec(venv,tenv,d,l,label);break;}
 	}
+}
+
+Tr_exp transVarDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label)
+{
+	struct expty e = transExp(venv,tenv,d->u.var.init,l,label);
+	S_symbol type = d->u.var.typ;
+	Tr_access access;
+	if(!type)
+	{
+		if(e.ty == Ty_Nil())
+		{
+			EM_error(d->pos,"init should not be nil without type specified");
+		}
+		access = Tr_allocLocal(l,TRUE);
+		S_enter(venv,d->u.var.var,E_VarEntry(access,e.ty));
+	}
+	else
+	{
+		Ty_ty ty_var= S_look(tenv,type);
+		if(!ty_var)
+		{
+			EM_error(d->pos,"undefined type %s",S_name(type));
+			access = Tr_allocLocal(l,TRUE);
+			S_enter(venv,d->u.var.var,E_VarEntry(access,actual_ty(e.ty)));
+		}
+		else
+		{
+			if(e.ty == Ty_Nil() && actual_ty(ty_var)->kind !=Ty_record)
+			{
+				EM_error(d->pos,"init should not be nil without type specified");
+			}
+
+			else if(!cmpty(ty_var,e.ty) && e.ty !=Ty_Nil())
+			{
+				EM_error(d->pos,"type mismatch");
+			}
+		}
+		access = Tr_allocLocal(l,TRUE);
+		S_enter(venv,d->u.var.var,E_VarEntry(access,actual_ty(e.ty)));
+	}
+	return Tr_Assign(Tr_simpleVar(access,l),e.exp);
+}
+
+Ty_ty transTy(S_table tenv,A_ty a)
+{
+	switch(a->kind)
+	{
+		case A_nameTy:
+		{
+			Ty_ty namety = S_look(tenv,a->u.name);
+			if(!namety)
+			{
+				EM_error(a->pos,"undefined type %s",S_name(a->u.name));
+			}
+			return Ty_Name(a->u.name,namety);
+		}
+		case A_recordTy:
+		{
+			
+			Ty_fieldList Ty_recordty=Ty_FieldList(NULL,NULL);
+			Ty_fieldList ty_tail=Ty_recordty;
+			A_fieldList A_recordty = a->u.record;
+			while(A_recordty)
+			{
+				Ty_ty fieldtyp = S_look(tenv,A_recordty->head->typ);
+				if(!fieldtyp)
+				{
+					EM_error(a->pos,"undefined type %s",S_name(A_recordty->head->typ));
+					fieldtyp = Ty_Int();
+				}
+				
+				Ty_field ty_field= Ty_Field(A_recordty->head->name,fieldtyp);
+				ty_tail->tail = Ty_FieldList(ty_field,NULL);
+				ty_tail=ty_tail->tail;
+
+				A_recordty = A_recordty->tail;
+			}
+			Ty_fieldList nullhead = Ty_recordty;
+			Ty_recordty=Ty_recordty->tail;
+			free(nullhead);
+			return Ty_Record(Ty_recordty);
+			
+		}
+		case A_arrayTy:
+		{
+			Ty_ty Ty_array = S_look(tenv,a->u.array);
+			if(!Ty_array)
+			{
+				EM_error(a->pos,"undefined type %s",S_name(a->u.array));
+				return Ty_Array(NULL);
+			}
+			else
+				return Ty_Array(Ty_array);
+		}
+	}
+}
+
+Tr_exp transTypeDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label)
+{
+	A_nametyList cur = d->u.type;
+	A_namety head;
+
+	//first cycle:push type names into tenv to handle recursive type.
+	while(cur)
+	{
+		head = cur->head;
+		if(S_look(tenv,head->name))
+		{
+			EM_error(d->pos,"two types have the same name");
+			cur = cur->tail;
+			continue;
+		}
+
+		else
+		{
+			S_enter(tenv,head->name,Ty_Name(head->name,NULL));//Handle recursive type.
+		}
+		cur = cur->tail;
+	}
+
+	//second cycle:push actual type of the names to the tenv.
+	cur = d->u.type;
+	while(cur)
+	{
+		head = cur->head;
+		Ty_ty ty = S_look(tenv,head->name);
+		ty->u.name.ty = transTy(tenv,head->ty);
+		cur = cur->tail;
+	}
+
+	//third cycle:Find wrong recursive typedec.
+	cur = d->u.type;
+	while(cur)
+	{
+		head = cur->head;
+		Ty_ty init = S_look(tenv,head->name);
+		Ty_ty type = init;
+		while(type->kind == Ty_name)
+		{	type = type->u.name.ty;
+			if(type == init)
+			{
+				EM_error(d->pos,"illegal type cycle");
+				init->u.name.ty = Ty_Int();
+				break;
+			}
+		}
+		cur = cur->tail;
+	}
+	return Tr_Nil();
+}
+
+Tr_exp transFunctionDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label)
+{
+	A_fundecList funcs = d->u.function;
+	A_fundec f;
+
+	//First loop:push function names into venv to handle recursive function
+	for(;funcs;funcs = funcs->tail)
+	{
+		f=funcs->head;
+		if(S_look(venv,f->name))
+		{
+			EM_error(f->pos,"two functions have the same name");
+			continue;
+		}
+		/*Handle the type of the formals*/
+		Ty_tyList formalTys = makeFormalTyList(tenv,f->params);
+		
+		/*Make a new level*/
+		Temp_label name = Temp_newlabel();
+		U_boolList args = NULL;
+		for(Ty_tyList cal_arg = formalTys;cal_arg;cal_arg = cal_arg->tail)
+		{
+			args = U_BoolList(TRUE,args);//Assume that all params are escaped.
+		}
+		Tr_level newl = Tr_newLevel(l,name,args);
+
+		/*Enter the name of the function without handling the body of it.*/
+		if(f->result)
+		{
+			Ty_ty resultTy = S_look(tenv,f->result);
+			if(!resultTy)
+			{
+				EM_error(f->pos,"undefined return type %s",S_name(f->result));
+				continue;
+			}
+			S_enter(venv,f->name,E_FunEntry(newl,name,formalTys,resultTy));
+		}
+		else
+		{
+			S_enter(venv,f->name,E_FunEntry(newl,name,formalTys,Ty_Void()));
+		}
+	}
+
+	//Second loop:handle 
+	for(funcs = d->u.function;funcs;funcs=funcs->tail)
+	{
+		f=funcs->head;
+		E_enventry funentry = S_look(venv,f->name);
+		Ty_tyList formalTys = funentry->u.fun.formals;
+		S_beginScope(venv);
+
+		/*Enter formals into venv */
+		
+		A_fieldList l; 
+		Ty_tyList t;
+
+		/*Get the access of the formal from funentry*/
+		Tr_accessList accesslist = Tr_get_formal_access(funentry->u.fun.level);
+		for(l=f->params,t=formalTys;l;l=l->tail,t=t->tail)
+		{
+			S_enter(venv,l->head->name,E_VarEntry(accesslist->head,t->head));
+			accesslist = accesslist->tail;
+		}
+		
+		/*Handle the function body.*/
+		struct expty body = transExp(venv,tenv,f->body,funentry->u.fun.level,funentry->u.fun.label);
+		if(!cmpty(body.ty,funentry->u.fun.result))
+		{
+			if(actual_ty(funentry->u.fun.result)->kind == Ty_void)
+			{
+				EM_error(f->pos,"procedure returns value");
+			}
+			EM_error(f->pos,"procedure returns unexpected type");
+		}
+		S_endScope(venv);
+		Tr_procEntryExit(funentry->u.fun.level,body.exp);
+	}
+	return Tr_Nil();
+}
+
+Ty_tyList makeFormalTyList(S_table tenv,A_fieldList params)
+{
+	A_field field;
+	Ty_tyList tyList = Ty_TyList(NULL,NULL);
+	Ty_tyList tail = tyList;
+	Ty_ty cur;
+	for(;params;params = params->tail)
+	{
+		field = params->head;
+		cur = S_look(tenv,field->typ);
+		if(!cur)
+		{
+			EM_error(field->pos,"undefined type %s",S_name(field->typ));
+			continue;
+		}
+		tail->tail = Ty_TyList(cur,NULL);
+		tail = tail->tail;
+	}
+	Ty_tyList old = tyList;
+	tyList = tyList->tail;
+	free(old);
+	return tyList;
 }

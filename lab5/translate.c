@@ -11,33 +11,22 @@
 
 //LAB5: you can modify anything you want.
 
-struct Tr_access_ {
-	Tr_level level;
-	F_access access;
-};
+static F_fragList frags = NULL;
+
+static Tr_exp Tr_Ex(T_exp ex);
+static Tr_exp Tr_Nx(T_stm nx);
+static Tr_exp Tr_Cx(patchList trues,patchList falses,T_stm stm); 
+
+static T_exp Tr_unEx(Tr_exp e);
+static T_stm Tr_unNx(Tr_exp e);
+static struct Cx Tr_unCx(Tr_exp e);
 
 
-struct Tr_accessList_ {
-	Tr_access head;
-	Tr_accessList tail;	
-};
 
-struct Tr_level_ {
-	F_frame frame;
-	Tr_level parent;
-};
-
-struct Cx 
+F_fragList Tr_getresult()
 {
-	patchList trues; 
-	patchList falses; 
-	T_stm stm;
-};
-
-struct Tr_exp_ {
-	enum {Tr_ex, Tr_nx, Tr_cx} kind;
-	union {T_exp ex; T_stm nx; struct Cx cx; } u;
-};
+	return frags;
+}
 
 Tr_expList Tr_ExpList(Tr_exp head,Tr_expList tail)
 {
@@ -45,6 +34,22 @@ Tr_expList Tr_ExpList(Tr_exp head,Tr_expList tail)
 	list->head = head;
 	list->tail = tail;
 	return list;
+}
+
+Tr_access Tr_Access(F_access faccess,Tr_level level)
+{
+	Tr_access access = checked_malloc(sizeof(*access));
+	access->access=faccess;
+	access->level = level;
+	return access;
+}
+
+Tr_accessList Tr_AccessList(Tr_access head, Tr_accessList tail)
+{
+	Tr_accessList lst = checked_malloc(sizeof(*lst));
+	lst->head = head;
+	lst->tail = tail;
+	return lst;
 }
 
 static patchList PatchList(Temp_label *head, patchList tail)
@@ -113,10 +118,10 @@ static T_exp Tr_unEx(Tr_exp e)
 			doPatch(e->u.cx.trues,t);
 			doPatch(e->u.cx.falses,f);
 			return 
-			T_Eseq(T_Move(r,T_Const(1)),
+			T_Eseq(T_Move(T_Temp(r),T_Const(1)),
 				T_Eseq(e->u.cx.stm,
 					T_Eseq(T_Label(f),
-						T_Eseq(T_Move(r,T_Const(0)),
+						T_Eseq(T_Move(T_Temp(r),T_Const(0)),
 							T_Eseq(T_Label(t),
 								T_Temp(r))))));
 		}
@@ -133,10 +138,12 @@ static T_stm Tr_unNx(Tr_exp e)
 		case Tr_nx:
 			return e->u.nx;
 		case Tr_cx:
+		{
 			Temp_label label = Temp_newlabel();
 			doPatch(e->u.cx.trues,label);
 			doPatch(e->u.cx.falses,label);
 			return T_Seq(e->u.cx.stm,T_Label(label));
+		}
 	}
 	assert(0);
 }
@@ -181,7 +188,7 @@ Tr_level Tr_newLevel(Tr_level parent, Temp_label name, U_boolList formals)
 
 void Tr_procEntryExit(Tr_level level,Tr_exp func_body)
 {
-	T_stm stm = T_Move(F_RAX(),Tr_unEx(func_body));
+	T_stm stm = T_Move(T_Temp(F_RV()),Tr_unEx(func_body));
 	F_frag head = F_ProcFrag(stm,level->frame);
 	//The added frag is the head of the new frags. 
 	frags = F_FragList(head,frags);
@@ -213,7 +220,7 @@ Tr_exp Tr_fieldVar(Tr_exp loc,int order)
 	{
 		printf("Error: fieldVar's loc must be an expression");
 	}
-	return T_Mem(T_Binop(T_plus,Tr_unEx(loc),T_Const(order * wordsize)));
+	return Tr_Ex(T_Mem(T_Binop(T_plus,Tr_unEx(loc),T_Const(order * wordsize))));
 }
 
 Tr_exp Tr_subscriptVar(Tr_exp loc,Tr_exp subscript)
@@ -222,8 +229,8 @@ Tr_exp Tr_subscriptVar(Tr_exp loc,Tr_exp subscript)
 	{
 		printf("Error: subscriptVar's loc or subscript must be an expression");
 	}
-	return T_Mem(T_Binop(T_plus,Tr_unEx(loc),
-		T_Binop(T_mul,Tr_unEx(subscript),T_Const(wordsize))));
+	return Tr_Ex(T_Mem(T_Binop(T_plus,Tr_unEx(loc),
+		T_Binop(T_mul,Tr_unEx(subscript),T_Const(wordsize)))));
 }
 
 Tr_exp Tr_Nil()
@@ -239,7 +246,7 @@ Tr_exp Tr_Int(int value)
 Tr_exp Tr_String(string str)
 {
 	Temp_label label = Temp_newlabel();
-	F_frag head = F_Stringfrag(label,str);
+	F_frag head = F_StringFrag(label,str);
 	frags = F_FragList(head,frags);//New String on the head of the frags.
 	return Tr_Ex(T_Name(label));
 }
@@ -340,12 +347,12 @@ Tr_exp Tr_Recordexp(Tr_expList fields)
 	T_stm stm = 
 	T_Move(
 		T_Temp(r),
-		T_Call(T_Name(Temp_namedlabel("malloc"))
-			,T_Const(count*wordsize)
+		F_externalCall("malloc"
+			,T_ExpList(T_Const(count*wordsize),NULL)
 		)
 	);
 	stm = T_Seq(stm,Tr_mk_record_array(fields,r,0,count));
-	return T_Eseq(stm,T_Temp(r));
+	return Tr_Ex(T_Eseq(stm,T_Temp(r)));
 }
 
 T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size)
@@ -401,7 +408,7 @@ Tr_exp Tr_If(Tr_exp test,Tr_exp then,Tr_exp elsee)
 		T_stm s = 
 		T_Seq(test_.stm,
 			T_Seq(T_Label(truelabel),
-				T_Seq(Tr_Nx(then),T_Label(falselabel))));
+				T_Seq(Tr_unNx(then),T_Label(falselabel))));
 		return Tr_Nx(s);
 	}
 }
@@ -410,13 +417,13 @@ Tr_exp Tr_While(Tr_exp test,Tr_exp body,Temp_label done)
 {
 	Temp_label bodyy = Temp_newlabel(), tst = Temp_newlabel();
 	struct Cx test_ = Tr_unCx(test);
-	doPatch(&test_.trues,bodyy);
-	doPatch(&test_.falses,done);
+	doPatch(test_.trues,bodyy);
+	doPatch(test_.falses,done);
 	T_stm s = T_Seq(T_Label(tst),
 	T_Seq(test_.stm,
-		T_Seq(T_label(bodyy),
+		T_Seq(T_Label(bodyy),
 			T_Seq(Tr_unNx(body),
-				T_Seq(T_Jump(T_Name(test),Temp_LabelList(test,NULL)),
+				T_Seq(T_Jump(T_Name(tst),Temp_LabelList(tst,NULL)),
 					T_Label(done))))));
 	return Tr_Nx(s);
 }
@@ -435,7 +442,7 @@ Tr_exp Tr_For(Tr_access loopv,Tr_exp lo,Tr_exp hi,Tr_exp body,Tr_level l,Temp_la
 		T_Binop(T_plus,loopvar,T_Const(1)));
 
 	/*if(i < hi) {i++; goto body;}*/
-	T_stm test = T_Seq(T_Cjump(T_le,Tr_simpleVar(loopv,l),hi,incloop_label,done),
+	T_stm test = T_Seq(T_Cjump(T_le,Tr_unEx(Tr_simpleVar(loopv,l)),Tr_unEx(hi),incloop_label,done),
 	T_Seq(T_Label(incloop_label),
 		T_Seq(incloop,
 			T_Jump(T_Name(bodylabel),Temp_LabelList(bodylabel,NULL)))));
@@ -445,8 +452,8 @@ Tr_exp Tr_For(Tr_access loopv,Tr_exp lo,Tr_exp hi,Tr_exp body,Tr_level l,Temp_la
 
 	//Concatenate together.
 	T_stm forr = T_Seq(checklohi,
-	T_Seq(T_Label(body),
-		T_Seq(Tr_unEx(body),
+	T_Seq(T_Label(bodylabel),
+		T_Seq(Tr_unNx(body),
 			T_Seq(test,T_Label(done)))));
 	
 	return Tr_Nx(forr);
@@ -460,8 +467,28 @@ Tr_exp Tr_Break(Temp_label done)
 Tr_exp Tr_Array(Tr_exp size,Tr_exp init)
 {
 	//Call initArray to create an array.
-	T_exp callinitArray = F_externalCall(T_Name("initArray"),
+	T_exp callinitArray = F_externalCall("initArray",
 	T_ExpList(Tr_unEx(size),
 		T_ExpList(Tr_unEx(init),NULL)));
 	return Tr_Ex(callinitArray);
+}
+
+
+Tr_accessList Tr_get_formal_access(Tr_level level)
+{
+	Tr_accessList accesslst = Tr_AccessList(NULL,NULL);
+	Tr_accessList tail = accesslst;
+	for(F_accessList faccesslst= level->frame->formals;faccesslst;faccesslst=faccesslst->tail)
+	{
+		tail->tail = Tr_AccessList(Tr_Access(faccesslst->head,level),NULL);
+		tail = tail->tail;
+	}
+	accesslst = accesslst->tail;
+	return accesslst;
+}
+
+Tr_exp Tr_Seq(Tr_exp left,Tr_exp right)
+{
+	T_exp e= T_Eseq(Tr_unNx(left),Tr_unEx(right));
+	return Tr_Ex(e);
 }
