@@ -126,7 +126,6 @@ static T_exp Tr_unEx(Tr_exp e)
 								T_Temp(r))))));
 		}
 	}
-	assert(0);//Can't get here.
 }
 
 static T_stm Tr_unNx(Tr_exp e)
@@ -357,21 +356,27 @@ Tr_exp Tr_Recordexp(Tr_expList fields)
 
 T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size)
 {
-	if(offset < size-2)
+	if(size > 1)
 	{
-		return 
-		T_Seq(
-			T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
-			Tr_mk_record_array(fields->tail,r,offset+1,size)
-		);
+		if(offset < size-2)
+		{
+			return 
+			T_Seq(
+				T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
+				Tr_mk_record_array(fields->tail,r,offset+1,size)
+			);
+		}
+		else
+		{
+			return
+			T_Seq(
+				T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
+				T_Move(T_Binop(T_plus,T_Temp(r),T_Const((offset+1)*wordsize)),Tr_unEx(fields->tail->head))
+			);
+		}
 	}
-	else
-	{
-		return
-		T_Seq(
-			T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
-			T_Move(T_Binop(T_plus,T_Temp(r),T_Const((offset+1)*wordsize)),Tr_unEx(fields->tail->head))
-		);
+	else{
+		return T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head));
 	}
 }
 
@@ -489,6 +494,15 @@ Tr_accessList Tr_get_formal_access(Tr_level level)
 
 Tr_exp Tr_Seq(Tr_exp left,Tr_exp right)
 {
-	T_exp e= T_Eseq(Tr_unNx(left),Tr_unEx(right));
+	/*Don't handle the situation where left is NULL*/
+	T_exp e;
+	if(right)
+	{
+		e= T_Eseq(Tr_unNx(left),Tr_unEx(right));
+	}
+	else
+	{
+		e = T_Eseq(Tr_unNx(left),T_Const(0));
+	}
 	return Tr_Ex(e);
 }

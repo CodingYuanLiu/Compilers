@@ -122,7 +122,7 @@ exp: 				exp AND exp {$$=A_IfExp(EM_tokPos,$1,$3,A_IntExp(EM_tokPos,0));}|
 
 voidexp:			lvalue ASSIGN exp {$$ = A_AssignExp(EM_tokPos,$1,$3);}|
 					IF exp THEN exp ELSE exp {$$ = A_IfExp(EM_tokPos,$2,$4,$6);}|
-					IF exp THEN exp {$$ = A_IfExp(EM_tokPos,$2,$4,A_NilExp(EM_tokPos));}|
+					IF exp THEN exp {$$ = A_IfExp(EM_tokPos,$2,$4,NULL);}|
 					WHILE exp DO exp {$$ = A_WhileExp(EM_tokPos,$2,$4);}|
 					FOR ID ASSIGN exp TO exp DO exp{$$ = A_ForExp(EM_tokPos,S_Symbol($2),$4,$6,$8);}|
 					BREAK {$$ = A_BreakExp(EM_tokPos);}|

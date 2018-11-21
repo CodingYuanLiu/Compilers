@@ -233,7 +233,10 @@ struct expty transCallexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_labe
 		}
 		list = list->tail;
 		Tr_exp trcall = Tr_Call(x->u.fun.label,list,l,x->u.fun.level);
-		return expTy(trcall,actual_ty(x->u.fun.result));
+		Ty_ty resultt = actual_ty(x->u.fun.result);
+		if(!resultt)
+			resultt = Ty_Void();//To handle base functions whose return ty is NULL
+		return expTy(trcall,resultt);
 	}
 }
 
@@ -358,7 +361,7 @@ struct expty transAssignexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_la
 		EM_error(a->pos,"unmatched assign exp");
 	}
 	Tr_exp trassign = Tr_Assign(var_.exp,exp_.exp);
-	return expTy(NULL,actual_ty(var_.ty));
+	return expTy(trassign,Ty_Void());
 }
 
 struct expty transIfexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label label)
@@ -366,7 +369,7 @@ struct expty transIfexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label 
 	struct expty test = transExp(venv,tenv,a->u.iff.test,l,label);
 	struct expty then = transExp(venv,tenv,a->u.iff.then,l,label);
 	Tr_exp tr_if;
-	if(a->u.iff.elsee->kind != A_nilExp)// Else expression exists
+	if(a->u.iff.elsee)// Else expression exists
 	{
 		struct expty elsee=transExp(venv,tenv,a->u.iff.elsee,l,label);
 		if(!cmpty(then.ty,elsee.ty))
@@ -582,12 +585,15 @@ Tr_exp transTypeDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label labe
 {
 	A_nametyList cur = d->u.type;
 	A_namety head;
+	
+	//Set up a new TAB_table to check type duplicate
+	S_table tocheck = S_empty();
 
 	//first cycle:push type names into tenv to handle recursive type.
 	while(cur)
 	{
 		head = cur->head;
-		if(S_look(tenv,head->name))
+		if(S_look(tocheck,head->name))
 		{
 			EM_error(d->pos,"two types have the same name");
 			cur = cur->tail;
@@ -596,6 +602,7 @@ Tr_exp transTypeDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label labe
 
 		else
 		{
+			S_enter(tocheck,head->name,(void *)0);
 			S_enter(tenv,head->name,Ty_Name(head->name,NULL));//Handle recursive type.
 		}
 		cur = cur->tail;
@@ -636,16 +643,19 @@ Tr_exp transFunctionDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label 
 {
 	A_fundecList funcs = d->u.function;
 	A_fundec f;
+	//Set an empty S_table to check function definition duplicate.
+	S_table tocheck = S_empty();
 
 	//First loop:push function names into venv to handle recursive function
 	for(;funcs;funcs = funcs->tail)
 	{
 		f=funcs->head;
-		if(S_look(venv,f->name))
+		if(S_look(tocheck,f->name))
 		{
 			EM_error(f->pos,"two functions have the same name");
 			continue;
 		}
+		S_enter(tocheck,f->name,(void *)0);
 		/*Handle the type of the formals*/
 		Ty_tyList formalTys = makeFormalTyList(tenv,f->params);
 		

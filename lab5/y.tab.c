@@ -1626,7 +1626,7 @@ yyreduce:
 
   case 30:
 #line 125 "tiger.y" /* yacc.c:1646  */
-    {(yyval.exp) = A_IfExp(EM_tokPos,(yyvsp[-2].exp),(yyvsp[0].exp),A_NilExp(EM_tokPos));}
+    {(yyval.exp) = A_IfExp(EM_tokPos,(yyvsp[-2].exp),(yyvsp[0].exp),NULL);}
 #line 1631 "y.tab.c" /* yacc.c:1646  */
     break;
 
