@@ -607,7 +607,6 @@ Tr_exp transTypeDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label labe
 		}
 		cur = cur->tail;
 	}
-
 	//second cycle:push actual type of the names to the tenv.
 	cur = d->u.type;
 	while(cur)

@@ -11,7 +11,9 @@
 
 //LAB5: you can modify anything you want.
 
-static F_fragList frags = NULL;
+static struct F_fragList_ startfrag = {NULL,NULL};
+
+static F_fragList frags = &startfrag, fragtail = &startfrag;
 
 static Tr_exp Tr_Ex(T_exp ex);
 static Tr_exp Tr_Nx(T_stm nx);
@@ -25,6 +27,7 @@ static struct Cx Tr_unCx(Tr_exp e);
 
 F_fragList Tr_getresult()
 {
+	frags = frags->tail;
 	return frags;
 }
 
@@ -190,7 +193,8 @@ void Tr_procEntryExit(Tr_level level,Tr_exp func_body)
 	T_stm stm = T_Move(T_Temp(F_RV()),Tr_unEx(func_body));
 	F_frag head = F_ProcFrag(stm,level->frame);
 	//The added frag is the head of the new frags. 
-	frags = F_FragList(head,frags);
+	fragtail->tail = F_FragList(head,NULL);
+	fragtail = fragtail->tail;
 }
 
 Tr_access Tr_allocLocal(Tr_level level,bool escape)
@@ -246,7 +250,9 @@ Tr_exp Tr_String(string str)
 {
 	Temp_label label = Temp_newlabel();
 	F_frag head = F_StringFrag(label,str);
-	frags = F_FragList(head,frags);//New String on the head of the frags.
+	//frags = F_FragList(head,frags);//New String on the head of the frags.
+	fragtail->tail = F_FragList(head,NULL);
+	fragtail = fragtail->tail;
 	return Tr_Ex(T_Name(label));
 }
 
