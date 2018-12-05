@@ -191,6 +191,7 @@ Tr_level Tr_newLevel(Tr_level parent, Temp_label name, U_boolList formals)
 void Tr_procEntryExit(Tr_level level,Tr_exp func_body)
 {
 	T_stm stm = T_Move(T_Temp(F_RV()),Tr_unEx(func_body));
+	stm = F_procEntryExit1(level->frame,stm);
 	F_frag head = F_ProcFrag(stm,level->frame);
 	//The added frag is the head of the new frags. 
 	fragtail->tail = F_FragList(head,NULL);

@@ -149,12 +149,12 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 			temp = Temp_newtemp();
 			switch(num)
 			{
-				case 1: view_shift=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDI())),view_shift);break;
-				case 2: view_shift=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RSI())),view_shift);break;
-				case 3: view_shift=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDX())),view_shift);break;
-				case 4: view_shift=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RCX())),view_shift);break;
-				case 5: view_shift=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R8())),view_shift);break;
-				case 6: view_shift=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R9())),view_shift);break;
+				case 1: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDI())),NULL);tail = tail->tail;break;
+				case 2: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RSI())),NULL);tail = tail->tail;break;
+				case 3: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDX())),NULL);tail = tail->tail;break;
+				case 4: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RCX())),NULL);tail = tail->tail;break;
+				case 5: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R8())),NULL);tail = tail->tail;break;
+				case 6: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R9())),NULL);tail = tail->tail;break;
 				default: printf("Frame: the 7-nth formal should be passed on frame.");
 			}
 			formals = F_AccessList(InReg(temp),formals);
@@ -196,9 +196,23 @@ F_fragList F_FragList(F_frag head, F_fragList tail)
 
 T_stm F_procEntryExit1(F_frame frame,T_stm stm)
 {
-	return stm;
+	T_stmList l = frame->view_shift;
+	T_stm bind = l->head;
+	for(l = l->tail;l;l = l->tail)
+	{
+		bind = T_Seq(bind,l->head);
+	}
+	bind = T_Seq(bind,stm);
+	return bind;
 }
 
+AS_instrList F_procEntryExit2(AS_instrList body)
+{
+	static Temp_tempList returnSink = NULL;
+	if(!returnSink)
+		returnSink = Temp_TempList(rsp,NULL);
+	return AS_splice(body,AS_InstrList(AS_Oper("",NULL,returnSink,NULL),NULL));
+}
 
 T_exp F_exp(F_access access,T_exp frame_ptr)
 {
@@ -217,9 +231,7 @@ T_exp F_externalCall(string s,T_expList args)
 	return T_Call(T_Name(Temp_namedlabel(s)),args);
 }
 
-
-
-static Temp_temp rbp = NULL;
+//Caller saved registers.
 static Temp_temp rax = NULL;
 static Temp_temp rdi = NULL;
 static Temp_temp rsi = NULL;
@@ -227,12 +239,28 @@ static Temp_temp rdx = NULL;
 static Temp_temp rcx = NULL;
 static Temp_temp r8 = NULL;
 static Temp_temp r9 = NULL;
+static Temp_temp r10 = NULL;
+static Temp_temp r11 = NULL;
+
+//Callee saved registers
+static Temp_temp rbp = NULL;
+static Temp_temp r12 = NULL;
+static Temp_temp r13 = NULL;
+static Temp_temp r14 = NULL;
+static Temp_temp r15 = NULL;
+static Temp_temp rbx = NULL;
+
+//Virtual frame pointer
+static Temp_temp fp = NULL;
+
+//stack pointer
+static Temp_temp rsp = NULL;
 
 Temp_temp F_FP()
 {
-	if(!rbp)
-		rbp = Temp_newtemp();
-	return rbp;	
+	if(!fp)
+		fp = Temp_newtemp();
+	return fp;	
 }
 
 Temp_temp F_RV()
@@ -240,6 +268,13 @@ Temp_temp F_RV()
 	if(!rax)
 		rax = Temp_newtemp();
 	return rax;	
+}
+
+Temp_temp F_SP()
+{
+	if(!rsp)
+		rsp = Temp_newtemp();
+	return rsp;	
 }
 
 Temp_temp F_RDI()
@@ -282,4 +317,60 @@ Temp_temp F_R9()
 	if(!r9)
 		r9 = Temp_newtemp();
 	return r9;	
+}
+
+Temp_temp F_R10()
+{
+	if(!r10)
+		r10 = Temp_newtemp();
+	return r10;
+}
+
+Temp_temp F_R11()
+{
+	if(!r11)
+		r11 = Temp_newtemp();
+	return r11;
+}
+
+Temp_temp F_R12()
+{
+	if(!r12)
+		r12 = Temp_newtemp();
+	return r12;
+}
+
+Temp_temp F_R13()
+{
+	if(!r13)
+		r13 = Temp_newtemp();
+	return r13;
+}
+
+Temp_temp F_R14()
+{
+	if(!r14)
+		r14 = Temp_newtemp();
+	return r14;
+}
+
+Temp_temp F_R15()
+{
+	if(!r15)
+		r15 = Temp_newtemp();
+	return r15;
+}
+
+Temp_temp F_RBX()
+{
+	if(!rbx)
+		rbx = Temp_newtemp();
+	return rbx;
+}
+
+Temp_temp F_RBP()
+{
+	if(!rbp)
+		rbp = Temp_newtemp();
+	return rbp;
 }
