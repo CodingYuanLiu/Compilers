@@ -11,4 +11,5 @@ static void emit(AS_instr inst);
 
 static void munchStm(T_stm stm);
 static Temp_temp munchExp(T_exp exp);
+Temp_tempList L(Temp_temp h,Temp_tempList t);
 #endif

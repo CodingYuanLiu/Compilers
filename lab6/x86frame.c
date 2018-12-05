@@ -231,31 +231,6 @@ T_exp F_externalCall(string s,T_expList args)
 	return T_Call(T_Name(Temp_namedlabel(s)),args);
 }
 
-//Caller saved registers.
-static Temp_temp rax = NULL;
-static Temp_temp rdi = NULL;
-static Temp_temp rsi = NULL;
-static Temp_temp rdx = NULL;
-static Temp_temp rcx = NULL;
-static Temp_temp r8 = NULL;
-static Temp_temp r9 = NULL;
-static Temp_temp r10 = NULL;
-static Temp_temp r11 = NULL;
-
-//Callee saved registers
-static Temp_temp rbp = NULL;
-static Temp_temp r12 = NULL;
-static Temp_temp r13 = NULL;
-static Temp_temp r14 = NULL;
-static Temp_temp r15 = NULL;
-static Temp_temp rbx = NULL;
-
-//Virtual frame pointer
-static Temp_temp fp = NULL;
-
-//stack pointer
-static Temp_temp rsp = NULL;
-
 Temp_temp F_FP()
 {
 	if(!fp)
