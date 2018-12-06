@@ -19,8 +19,52 @@
 static Temp_temp savedrbx,savedrbp,savedr12,savedr13,savedr14,savedr15;
 
 static AS_instrList iList = NULL,last = NULL;
-
+static AS_relList rList = NULL;
 //Lab 6: put your code here
+
+AS_rel AS_Rel(AS_instr* inst, int offset)
+{
+    AS_rel relocate = checked_malloc(sizeof(relocate));
+    relocate->instr = inst;
+    relocate->offset = offset;
+    return relocate;
+}
+
+AS_relList AS_RelList(AS_instr head, AS_relList tail)
+{
+    AS_relList relocate_list = checked_malloc(sizeof(relocate_list));
+    relocate_list->head = head;
+    relocate_list->tail = tail;
+    return relocate_list;
+}
+
+void addrel(AS_rel rel)
+{
+    if(!rList)
+    {
+        rList = AS_RelList(rel,NULL);
+    }
+    else
+    {
+        rList = AS_RelList(rel,rList);
+    }
+}
+
+// Named relocate because it act like relocation.
+void relocate(AS_relList rlist,int framesize)
+{
+    AS_rel rel;
+    for(AS_relList relist=rlist;relist;relist = relist->tail)
+    {
+        rel = relist->head;
+        AS_instr inst = *rel->instr;
+        //movq (framesize+offset)(%rsp),temp
+        string assem = checked_malloc(MAXLEN);
+        sprintf(assem,"movq %d(`s0),`d0",framesize+rel->offset);
+        inst->u.OPER.assem = assem;
+    }
+}
+
 static void emit(AS_instr inst)
 {
     if(iList)
@@ -161,6 +205,7 @@ static void munchStm(T_stm s)
 
 static Temp_temp munchExp(T_exp e)
 {
+    Temp_temp r = Temp_newtemp();
     switch(e->kind)
     {
         //May contain F_FP() in it: MEM(+(FP,EXP)).
@@ -171,12 +216,43 @@ static Temp_temp munchExp(T_exp e)
             if(addr->kind == T_BINOP)
             {
                 T_exp left = addr->u.BINOP.left;
+                T_exp right = addr->u.BINOP.right;
                 if(left->kind == T_TEMP && left->u.TEMP == F_FP())
                 {
                     //handle fp here.
+                    if(right->kind != T_CONST)
+                    {
+                        printf("FP's right must be a const\n");
+                        return r;
+                    }
+                    int offset = right->u.CONST;
+                    //movq offset(%fp),%temp;
+                    //The assem instruction here is wrong. Need to be modified at relocate().
+                    AS_instr inst = AS_Oper("#before relocation\n movq (`s0),`d0",L(r,NULL),L(F_SP(),NULL),AS_Targets(NULL));
+                    addrel(AS_Rel(&inst,offset));
+                    emit(inst);
+                    return r;
                 }
-                
+                else
+                {
+                    Temp_temp lefttemp = munchExp(left);
+                    Temp_temp righttemp = munchExp(right);
+                    emit(AS_Oper("addq `s0,`d0",L(righttemp,NULL),L(lefttemp,NULL),AS_Targets(NULL)));
+                    emit(AS_Oper("movq(`s0),`d0",L(r,NULL),L(righttemp,NULL),AS_Targets(NULL)));
+                    return r;
+                }
             }
+            else //addr->kind != T_BINOP
+            {
+                Temp_temp r1= munchExp(addr);
+                emit(AS_Oper("movq (`s0),`d0", L(r, NULL), L(addr, NULL), AS_Targets(NULL)));
+                return r;
+            }
+        }
+
+        case T_TEMP:
+        {
+            return e->u.TEMP;
         }
     }
 }

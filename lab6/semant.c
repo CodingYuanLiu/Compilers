@@ -521,7 +521,7 @@ Tr_exp transVarDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label
 				EM_error(d->pos,"type mismatch");
 			}
 		}
-		access = Tr_allocLocal(l,TRUE);
+		access = Tr_allocLocal(l,TRUE);//need to escape analyse
 		S_enter(venv,d->u.var.var,E_VarEntry(access,actual_ty(e.ty)));
 	}
 	return Tr_Assign(Tr_simpleVar(access,l),e.exp);
