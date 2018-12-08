@@ -245,13 +245,6 @@ Temp_temp F_RV()
 	return rax;	
 }
 
-Temp_temp F_RAX()
-{
-	if(!rax)
-		rax = Temp_newtemp();
-	return rax;	
-}
-
 Temp_temp F_SP()
 {
 	if(!rsp)
