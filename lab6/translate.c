@@ -272,6 +272,8 @@ Tr_exp Tr_Call(Temp_label label,Tr_expList args,Tr_level caller,Tr_level callee)
 		tail->tail = T_ExpList(Tr_unEx(args->head),NULL);
 		tail = tail->tail;
 	}
+	//debug in 12.8
+	targs = targs->tail;
 	targs = T_ExpList(staticlink,targs);
 	return Tr_Ex(T_Call(T_Name(label),targs));
 }
