@@ -84,6 +84,7 @@ static void emit(AS_instr inst)
 }
 
 static char fs[256];
+
 AS_instrList F_codegen(F_frame f, T_stmList stmList) {
     AS_instrList list;
     T_stmList s;
@@ -153,7 +154,8 @@ static void munchStm(T_stm s)
             {
                 Temp_temp left = munchExp(src);
                 Temp_temp right = munchExp(dst);
-                emit(AS_Move("movq `s0,(`d0)",Temp_TempList(right,NULL),Temp_TempList(left,NULL)));
+                //temps are both live here.
+                emit(AS_Oper("movq `s0,(`s1)",NULL,L(left, L(right,NULL)),AS_Targets(NULL)));
                 return;
             }
             printf("Wrong T_MOVE stm.");
@@ -241,7 +243,7 @@ static Temp_temp munchExp(T_exp e)
                 {
                     Temp_temp lefttemp = munchExp(left);
                     Temp_temp righttemp = munchExp(right);
-                    emit(AS_Oper("addq `s0,`d0",L(righttemp,NULL),L(lefttemp,NULL),AS_Targets(NULL)));
+                    emit(AS_Oper("addq `s0,`d0",L(righttemp,NULL),L(lefttemp,L(righttemp,NULL)),AS_Targets(NULL)));
                     emit(AS_Oper("movq(`s0),`d0",L(r,NULL),L(righttemp,NULL),AS_Targets(NULL)));
                     return r;
                 }
@@ -264,7 +266,7 @@ static Temp_temp munchExp(T_exp e)
                     Temp_temp left = munchExp(e->u.BINOP.left);
                     Temp_temp right = munchExp(e->u.BINOP.right);
                     emit(AS_Move("movq `s0, `d0", L(r, NULL), L(left, NULL)));
-			        emit(AS_Oper("addq `s0, `d0", L(r, NULL), L(right, NULL), AS_Targets(NULL)));
+			        emit(AS_Oper("addq `s0, `d0", L(r, NULL), L(right, L(r,NULL)), AS_Targets(NULL)));
                     return r;
                 }
                 case T_minus:
@@ -272,7 +274,7 @@ static Temp_temp munchExp(T_exp e)
                     Temp_temp left = munchExp(e->u.BINOP.left);
                     Temp_temp right = munchExp(e->u.BINOP.right);
                     emit(AS_Move("movq `s0, `d0", L(r, NULL), L(left, NULL)));
-			        emit(AS_Oper("subq `s0, `d0", L(r, NULL), L(right, NULL), AS_Targets(NULL)));
+			        emit(AS_Oper("subq `s0, `d0", L(r, NULL), L(right, L(r,NULL)), AS_Targets(NULL)));
                     return r;
                 }
                 //Need to consider 128 bits long result.
@@ -281,7 +283,7 @@ static Temp_temp munchExp(T_exp e)
                     Temp_temp left = munchExp(e->u.BINOP.left);
                     Temp_temp right = munchExp(e->u.BINOP.right);
                     emit(AS_Move("movq `s0, `d0", Temp_TempList(F_RAX(), NULL), Temp_TempList(left, NULL)));
-                    emit(AS_Oper("imul  s0",NULL,L(right,NULL),AS_Targets(NULL)));
+                    emit(AS_Oper("imul  s0",L(F_RAX(), L(F_RDX(),NULL)),L(right, L(F_RAX(),NULL)),AS_Targets(NULL)));
                     emit(AS_Move("movq `s0, `d0", Temp_TempList(r, NULL), Temp_TempList(F_RAX(), NULL)));
                     return r;
                 }
@@ -290,7 +292,9 @@ static Temp_temp munchExp(T_exp e)
                     Temp_temp left = munchExp(e->u.BINOP.left);
 			        Temp_temp right = munchExp(e->u.BINOP.right);
                     emit(AS_Move("movq `s0, `d0", Temp_TempList(F_RAX(), NULL), Temp_TempList(left, NULL)));
-                    emit(AS_Oper("cltq",NULL,NULL,AS_Targets(NULL)));
+                    emit(AS_Oper("clto",L(F_RAX(),L(F_RDX(),NULL)),L(F_RAX(),NULL),AS_Targets(NULL)));
+                    emit(AS_Oper("idivq `s0",L(F_RAX(),L(F_RDX(),NULL)),
+                        L(F_RAX(), L(F_RDX(), L(right,NULL))),AS_Targets(NULL)));
                     emit(AS_Move("movq `s0, `d0", Temp_TempList(r, NULL), Temp_TempList(F_RAX(), NULL)));
                     return r;
                 }
@@ -313,7 +317,7 @@ static Temp_temp munchExp(T_exp e)
         case T_CONST:
         {
             string inst = checked_malloc(MAXLEN);
-            sprintf(inst,"movq &$d,`d0",e->u.CONST);
+            sprintf(inst,"movq $%d,`d0",e->u.CONST);
             emit(AS_Move(inst,L(r,NULL),NULL));
             return r;
         }
@@ -323,9 +327,9 @@ static Temp_temp munchExp(T_exp e)
             string inst=checked_malloc(MAXLEN);
             
             munchArgs(e->u.CALL.args);
-            
+
             sprintf(inst, "call %s", Temp_labelstring(func));
-	        emit(AS_Oper(inst, caller_saved, NULL, AS_Targets(NULL)));
+	        emit(AS_Oper(inst, caller_saved, NULL, AS_Targets(Temp_LabelList(func,NULL))));
 	        emit(AS_Move("movq `s0, `d0", L(r, NULL), L(F_RAX(), NULL)));
 
             return r;
