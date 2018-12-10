@@ -214,6 +214,17 @@ AS_instrList F_procEntryExit2(AS_instrList body)
 	return AS_splice(body,AS_InstrList(AS_Oper("",NULL,returnSink,NULL),NULL));
 }
 
+AS_proc F_procEntryExit3(F_frame frame,AS_instrList body)
+{
+	char prolog[256];
+	char epilog[256];
+	char fs[20];
+	sprintf(fs,"%s_framesize",frame->name);
+	sprintf(prolog,".set %s,%#x\n subq $%#x,%%rsp\n",fs,-frame->s_offset,-frame->s_offset);//frame->s_offset is expected to be minus.
+	sprintf(epilog,"ret\n");
+	return AS_Proc(prolog,body,epilog);
+}
+
 T_exp F_exp(F_access access,T_exp frame_ptr)
 {
 	if(access->kind = inFrame)

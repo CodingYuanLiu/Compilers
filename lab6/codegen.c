@@ -20,9 +20,10 @@
 static Temp_temp savedrbx,savedrbp,savedr12,savedr13,savedr14,savedr15;
 
 static AS_instrList iList = NULL,last = NULL;
-static AS_relList rList = NULL;
+//static AS_relList rList = NULL;
 //Lab 6: put your code here
 
+/*
 AS_rel AS_Rel(AS_instr* inst, int offset)
 {
     AS_rel relocate = checked_malloc(sizeof(relocate));
@@ -51,6 +52,7 @@ void addrel(AS_rel rel)
     }
 }
 
+
 // Named relocate because it act like relocation.
 void relocate(AS_relList rlist,int framesize)
 {
@@ -68,7 +70,7 @@ void relocate(AS_relList rlist,int framesize)
     }
     rlist = NULL;
 }
-
+*/
 static void emit(AS_instr inst)
 {
     if(iList)
@@ -98,6 +100,7 @@ AS_instrList F_codegen(F_frame f, T_stmList stmList) {
     restorecalleeregs();
     list = iList;
     iList = NULL;
+    
     return F_procEntryExit2(list);
 }
 
@@ -232,11 +235,17 @@ static Temp_temp munchExp(T_exp e)
                         return r;
                     }
                     int offset = right->u.CONST;
-                    //movq offset(%fp),%temp;
-                    //The assem instruction here is wrong. Need to be modified at relocate().
-                    AS_instr inst = AS_Oper("#before relocation\n movq offset(`s0),`d0",L(r,NULL),L(F_SP(),NULL),AS_Targets(NULL));
-                    addrel(AS_Rel(&inst,offset));
-                    emit(inst);
+                    
+                    /* movq offset(%fp),%temp; */
+
+                    string instr = checked_malloc(MAXLEN);
+
+                    //AS_instr inst = AS_Oper("movq offset(`s0),`d0",L(r,NULL),L(F_SP(),NULL),AS_Targets(NULL));
+                    //addrel(AS_Rel(&inst,offset));
+                    //emit(inst);
+                    
+                    sprintf(instr,"movq (%s+offset)(`s0),`d0",fs);
+                    emit(AS_Oper(instr,L(r,NULL),L(F_SP(),NULL),AS_Targets(NULL)));
                     return r;
                 }
                 else
