@@ -173,7 +173,7 @@ static struct Cx Tr_unCx(Tr_exp e)
 Tr_level Tr_outermost(void)
 {
 	static struct Tr_level_ outermost;
-	outermost.frame = F_newFrame(Temp_namedlabel("main"),NULL);
+	outermost.frame = F_newFrame(Temp_namedlabel("tigermain"),NULL);
 	outermost.parent = NULL;
 	return &outermost; 
 }
