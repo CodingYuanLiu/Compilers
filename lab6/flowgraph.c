@@ -89,7 +89,7 @@ G_graph FG_AssemFlowGraph(AS_instrList il, F_frame f)
 		instr = G_nodeInfo(cur);
 		if(instr->kind == I_OPER && instr->u.OPER.jumps->labels)
 		{
-			Temp_tempList labels = instr->u.OPER.jumps->labels;
+			Temp_labelList labels = instr->u.OPER.jumps->labels;
 			for(;labels;labels = labels->tail)
 			{
 				target = TAB_look(labelmap,labels->head);

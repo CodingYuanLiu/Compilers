@@ -197,12 +197,23 @@ F_fragList F_FragList(F_frag head, F_fragList tail)
 T_stm F_procEntryExit1(F_frame frame,T_stm stm)
 {
 	T_stmList l = frame->view_shift;
-	T_stm bind = l->head;
-	for(l = l->tail;l;l = l->tail)
+	T_stm bind = NULL,head;
+	for(;l;l = l->tail)
 	{
-		bind = T_Seq(bind,l->head);
+		head = l->head;
+		if(bind)
+		{
+			bind = T_Seq(bind,head);
+		}
+		else
+		{
+			bind = head;
+		}
 	}
-	bind = T_Seq(bind,stm);
+	if(bind)
+		bind = T_Seq(bind,stm);
+	else
+		bind = stm;
 	return bind;
 }
 
@@ -227,7 +238,7 @@ AS_proc F_procEntryExit3(F_frame frame,AS_instrList body)
 
 T_exp F_exp(F_access access,T_exp frame_ptr)
 {
-	if(access->kind = inFrame)
+	if(access->kind == inFrame)
 	{
 		return T_Mem(T_Binop(T_plus,frame_ptr,T_Const(access->u.offset)));
 	}
@@ -252,38 +263,53 @@ Temp_temp F_FP()
 Temp_temp F_RV()
 {
 	if(!rax)
+	{
 		rax = Temp_newtemp();
+//		Temp_enter(F_tempMap,rax,String("%rax"));
+	}
 	return rax;	
 }
 
 Temp_temp F_SP()
 {
 	if(!rsp)
+	{
 		rsp = Temp_newtemp();
+//		Temp_enter(F_tempMap,rsp,String("%rsp"));
+	}
 	return rsp;	
 }
 
 Temp_temp F_RDI()
 {
 	if(!rdi)
+	{
 		rdi = Temp_newtemp();
+//		Temp_enter(F_tempMap,rdi,String("%rdi"));
+	}
 	return rdi;	
 }
 
 Temp_temp F_RSI()
 {
 	if(!rsi)
+	{
 		rsi = Temp_newtemp();
+//		Temp_enter(F_tempMap,rsi,String("%rsi"));
+	}
 	return rsi;	
 }
 
 Temp_temp F_RDX()
 {
 	if(!rdx)
+	{
 		rdx = Temp_newtemp();
+//		Temp_enter(F_tempMap,rdx,String("%rdx"));
+	}
 	return rdx;	
 }
-
+//To be continued
 Temp_temp F_RCX()
 {
 	if(!rcx)
@@ -359,4 +385,11 @@ Temp_temp F_RBP()
 	if(!rbp)
 		rbp = Temp_newtemp();
 	return rbp;
+}
+
+Temp_temp F_RAX()
+{
+	if(!rax)
+		rax = Temp_newtemp();
+	return rax;
 }

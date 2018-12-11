@@ -14,6 +14,7 @@ typedef struct F_accessList_ *F_accessList;
 
 struct F_accessList_ {F_access head; F_accessList tail;};
 
+ Temp_map F_tempMap;
 
 /* declaration for fragments */
 typedef struct F_frag_ *F_frag;
@@ -80,6 +81,7 @@ T_stm F_procEntryExit1(F_frame frame,T_stm stm);
 
 Temp_temp F_FP(void);
 Temp_temp F_RV(void);
+Temp_temp F_RAX(void);
 Temp_temp F_RDI();
 Temp_temp F_RSI();
 Temp_temp F_RDX();

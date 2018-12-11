@@ -169,7 +169,7 @@ static void munchStm(T_stm s)
         {
             Temp_label label = s->u.LABEL;
             char *lab = checked_malloc(MAXLEN);
-            sprintf(lab,"%s:",Temp_labelstring(label));
+            sprintf(lab,"%s",Temp_labelstring(label)); //".L2:". Colon will be added at AS_print()
             emit(AS_Label(lab,label));//The second argument of AS_Label() seems useless.
             return;
         }
@@ -198,7 +198,7 @@ static void munchStm(T_stm s)
                 case T_le: op = String("jle");break;
                 case T_ge: op = String("jge");break;
             }
-            emit(AS_Oper("cmp `s0,`s1",NULL,L(left,right),AS_Targets(NULL)));
+            emit(AS_Oper("cmp `s0,`s1",NULL,L(left,L(right,NULL)),AS_Targets(NULL)));
             sprintf(cjmp,"%s %s",op,Temp_labelstring(s->u.CJUMP.true));
             emit(AS_Oper(cjmp,NULL,NULL,AS_Targets(Temp_LabelList(s->u.CJUMP.true,NULL))));
             return;
