@@ -244,7 +244,7 @@ static Temp_temp munchExp(T_exp e)
                     //addrel(AS_Rel(&inst,offset));
                     //emit(inst);
                     
-                    sprintf(instr,"movq (%s+offset)(`s0),`d0",fs);
+                    sprintf(instr,"movq (%s+%d)(`s0),`d0",fs,offset);
                     emit(AS_Oper(instr,L(r,NULL),L(F_SP(),NULL),AS_Targets(NULL)));
                     return r;
                 }

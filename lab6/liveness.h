@@ -17,4 +17,9 @@ Temp_temp Live_gtemp(G_node n);
 
 struct Live_graph Live_liveness(G_graph flow);
 
+// A && B for set A,B
+Temp_tempList UnionSets(Temp_tempList left,Temp_tempList right);
+// A - B for set A,B
+Temp_tempList SubSets(Temp_tempList left,Temp_tempList right);
+bool tempequal(Temp_tempList old,Temp_tempList neww);
 #endif
