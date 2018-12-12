@@ -42,7 +42,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 	for(;flownodes;flownodes = flownodes->tail)
 	{
 		flownode = flownodes->head;
-		G_enter(in,flownode,Temp_TempList(NULL,NULL));
+		G_enter(in,flownode,Temp_TempList(NULL,NULL)); //Don't forget the TempList may be empty
 		G_enter(out,flownode,Temp_TempList(NULL,NULL));
 	}
 
@@ -94,11 +94,30 @@ Temp_tempList UnionSets(Temp_tempList left,Temp_tempList right)
 		}
 		else
 		{
-			for(Temp_tempList l = left; l; l = l->tail)
-			{
-
-			}
+			if(!intemp(left,right->head))
+				left = Temp_TempList(right->head,left);
 		}
 	}
+	return left;
+}
 
+bool intemp(Temp_tempList list,Temp_temp temp)
+{
+	for(;list;list = list->tail)
+	{
+		if(!list->head)
+			return FALSE;
+		else
+		{
+			if(list->head == temp)
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+Temp_tempList SubSets(Temp_tempList left, Temp_tempList right)
+{
+	Temp_tempList new = NULL;
+	
 }
