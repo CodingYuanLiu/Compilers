@@ -232,7 +232,7 @@ AS_proc F_procEntryExit3(F_frame frame,AS_instrList body)
 	char fs[20];
 	sprintf(fs,"%s_framesize",frame->name);
 	sprintf(prolog,".set %s,%#x\n subq $%#x,%%rsp\n",fs,-frame->s_offset,-frame->s_offset);//frame->s_offset is expected to be minus.
-	sprintf(epilog,"ret\n");
+	sprintf(epilog,"addq $%#x,%%rsp\n ret\n",-frame->s_offset);
 	return AS_Proc(prolog,body,epilog);
 }
 

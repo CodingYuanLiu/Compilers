@@ -312,6 +312,10 @@ static Temp_temp munchExp(T_exp e)
 
         case T_TEMP:
         {
+            if(e->u.TEMP == F_FP())
+            {
+                printf("FP must be handled above!"); // for debugging.
+            }
             return e->u.TEMP;
         }
         

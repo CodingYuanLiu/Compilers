@@ -45,15 +45,15 @@ struct Live_graph Live_liveness(G_graph flow) {
 		G_enter(in,flownode,Temp_TempList(NULL,NULL)); //Don't forget the TempList may be empty
 		G_enter(out,flownode,Temp_TempList(NULL,NULL));
 	}
-
+	
 	bool fixed_point = FALSE;
 	do{
 		flownodes = G_nodes(flow);
 		for(;flownodes;flownodes = flownodes->tail)
 		{
 			flownode = flownodes->head;
-			Temp_tempList in_n_old = G_look(in,flownode);
-			Temp_tempList out_n_old = G_look(out,flownode);
+			Temp_tempList in_n_old = (Temp_tempList)G_look(in,flownode);
+			Temp_tempList out_n_old = (Temp_tempList)G_look(out,flownode);
 			Temp_tempList in_n = NULL,out_n = NULL;
 			/* pseudocode:
 			in[n] = use[n] and (out[n] – def[n])
@@ -81,24 +81,109 @@ struct Live_graph Live_liveness(G_graph flow) {
 		}
 	}while(!fixed_point);
 
+	/* Then use the result of the livemap to construct interfere graph */
+	/* Construct the graph */
+	lg.graph = G_Graph();
+	lg.moves = NULL;
+
+	/* Add hardregister to the graph */
+	TAB_table tempTab = TAB_empty();
+	Temp_tempList hardreg = Temp_TempList(F_RAX(), Temp_TempList(F_RBX(),
+							Temp_TempList(F_RCX(), Temp_TempList(F_RDX(),
+							Temp_TempList(F_RSI(), Temp_TempList(F_RDI(),
+							Temp_TempList(F_R8(), Temp_TempList(F_R9(),
+							Temp_TempList(F_R10(), Temp_TempList(F_R11(),
+							Temp_TempList(F_R12(), Temp_TempList(F_R13(),
+							Temp_TempList(F_R14(), Temp_TempList(F_R15(), 
+							Temp_TempList(F_RBP(),NULL)))))))))))))));
+	/* Add nodes of hard register into temp table*/
+	for(Temp_tempList temp = hardreg;temp;temp = temp->tail)
+	{
+		G_node Tempnode = G_Node(lg.graph,temp->head);
+		TAB_enter(tempTab,temp->head,Tempnode);
+	}
+	/* Add edge between hard register node. */
+	for(Temp_tempList A = hardreg; A; A = A->tail )
+	{
+		for(Temp_tempList B = A->tail; B; B = B->tail)
+		{
+			G_node nodeA = TAB_look(tempTab,A->head);
+			G_node nodeB = TAB_look(tempTab,B->head);
+			G_addEdge(nodeA,nodeB);
+			G_addEdge(nodeB,nodeA);
+		}
+	}
+
+	/* Add nodes of temp register into temp table*/
+	flownodes = G_nodes(flow);
+
+	for(;flownodes;flownodes = flownodes->tail)
+	{
+		flownode = flownodes -> head;
+		Temp_tempList outn = (Temp_tempList)G_look(out,flownode),
+		def = FG_def(flownode);
+		if(!(def && def->head))
+		{
+			continue;
+		}
+		Temp_tempList temps = UnionSets(outn,def);
+		for(;temps;temps = temps->tail)
+		{
+			if(temps->head = F_SP())
+			{
+				continue;
+			}
+			// If the temp is not in the map, add it.
+			if(!TAB_look(tempTab,temps->head))
+			{
+				G_node tempNode = G_Node(lg.graph,temps->head);
+				TAB_enter(tempTab,temps->head,tempNode);
+			}
+		}
+	}
+
+	/* Add edge between temp register node. */
+	/* Caution: the edge may be able to be coalesced later?*/
+	/* To be continued */
+
+
+
+
 	return lg;
 }
 
 Temp_tempList UnionSets(Temp_tempList left,Temp_tempList right)
 {
+	Temp_tempList unionn = left;
 	for(;right;right = right->tail)
 	{
 		if(!right->head)//Right is empty
 		{
-			return left;
+			return unionn;
 		}
 		else
 		{
-			if(!intemp(left,right->head))
-				left = Temp_TempList(right->head,left);
+			if(!intemp(unionn,right->head))
+				unionn = Temp_TempList(right->head,unionn);
 		}
 	}
-	return left;
+	return unionn;
+}
+
+Temp_tempList SubSets(Temp_tempList left, Temp_tempList right)
+{
+	Temp_tempList sub = NULL;
+	for(;left;left = left->tail)
+	{
+		if(!left->head)
+			break;
+		if(!intemp(right,left->head))
+		{
+			sub = Temp_TempList(left->head,right);
+		}
+		
+	}
+	return sub;
 }
 
 bool intemp(Temp_tempList list,Temp_temp temp)
@@ -116,8 +201,33 @@ bool intemp(Temp_tempList list,Temp_temp temp)
 	return FALSE;
 }
 
-Temp_tempList SubSets(Temp_tempList left, Temp_tempList right)
+bool tempequal(Temp_tempList old,Temp_tempList neww)
 {
-	Temp_tempList new = NULL;
-	
+	Temp_tempList cur = old;
+	/* Firstly consider empty list */
+	if(!old->head)
+	{
+		if(!neww->head)
+			return TRUE;
+		else 
+			return FALSE;
+	}
+	/* Here, old->head is not NULL */
+	if(!neww->head)
+	{
+		return FALSE;
+	}
+	for(;cur;cur = cur->tail)
+	{
+		if(!intemp(neww,cur->head))
+			return FALSE;
+	}
+	cur = neww;
+	for(;cur;cur = cur->tail)
+	{
+		if(!intemp(old,cur->head))
+			return FALSE;
+	}
+	return TRUE;
 }
+
