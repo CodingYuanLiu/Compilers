@@ -25,6 +25,18 @@ Temp_temp Live_gtemp(G_node n) {
 	return NULL;
 }
 
+bool Live_isinMoveList(G_node src,G_node dst,Live_moveList tail)
+{
+	for(;tail;tail = tail->tail)
+	{
+		if(src == tail->src && dst == tail->dst)
+		{
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 struct Live_graph Live_liveness(G_graph flow) {
 	//your code here.
 	struct Live_graph lg;
@@ -143,12 +155,82 @@ struct Live_graph Live_liveness(G_graph flow) {
 	}
 
 	/* Add edge between temp register node. */
-	/* Caution: the edge may be able to be coalesced later?*/
-	/* To be continued */
+	flownodes = G_nodes(flow);
+	for(;flownodes;flownodes = flownodes->tail)
+	{
+		flownode = flownodes->head;
+		Temp_tempList outn = (Temp_tempList)G_look(out,flownode),
+		def = FG_def(flownode);
+		if(!(def && def->head))
+		{
+			continue;
+		}
+		/* Add edge to the interfere graph,firstly check if the instruction
+		 of the flownode is MOVE. */
+		/* If the instruction is not move, add edge directly.*/
+		if(!FG_isMove(flownode))
+		{
+			for(;def;def = def->tail)
+			{
+				if(def->head == F_SP())
+				{
+					continue;
+				}
+				G_node defnode = TAB_look(tempTab,def->head);
+				for(;outn;outn = outn->tail)
+				{
+					if(outn->head == F_SP())
+					{
+						continue;
+					}
+					G_node outnode = TAB_look(tempTab,outn->head);
+					/* If outnode and defnode is not linked yet.*/
+					if(!G_inNodeList(defnode,G_adj(outnode)))
+					{
+						G_addEdge(defnode,outnode);
+						G_addEdge(outnode,defnode);
+					}
+				}
+			}
+		}
+		/* Else,the instruction is MOVE*/
+		else
+		{
+			if(def->head == F_SP())
+			{
+				continue;
+			}
+			G_node defnode = TAB_look(tempTab,def->head);
+			for(;outn;outn = outn)
+			{
+				if(outn->head == F_SP())
+				{
+					continue;
+				}
+				G_node outnode = TAB_look(tempTab,outn->head);
+				
+				if(!(G_inNodeList(defnode,G_adj(outnode))) && !(intemp(outn->head,FG_use(flownode))))
+				{
+					G_addEdge(outnode,defnode);
+					G_addEdge(defnode,outnode);
+				}			
+			}
 
-
-
-
+			/* Add it to the movelist. It's for coalescence in ra.*/
+			for(Temp_tempList uses = FG_use(flownode);uses;uses = uses->tail)
+			{
+				if(uses->head == F_SP())
+				{
+					continue;
+				}
+				G_node usenode = TAB_look(tempTab,uses->head);
+				if(Live_isinMoveList(usenode,defnode,lg.moves))
+				{
+					lg.moves = Live_MoveList(usenode,defnode,lg.moves);
+				}
+			}
+		}
+	}
 	return lg;
 }
 

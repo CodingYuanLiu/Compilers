@@ -8,6 +8,7 @@ struct Live_moveList_ {
 };
 
 Live_moveList Live_MoveList(G_node src, G_node dst, Live_moveList tail);
+bool Live_isinMoveList(G_node src,G_node dst,Live_moveList tail);
 
 struct Live_graph {
 	G_graph graph;
