@@ -57,7 +57,7 @@ G_graph FG_AssemFlowGraph(AS_instrList il, F_frame f)
 	{
 		instr = instrl->head;
 		cur = G_Node(flowgragh,instr);
-		if(!prev)
+		if(prev)
 		{
 			G_addEdge(prev,cur);
 		}
@@ -93,7 +93,12 @@ G_graph FG_AssemFlowGraph(AS_instrList il, F_frame f)
 			for(;labels;labels = labels->tail)
 			{
 				target = TAB_look(labelmap,labels->head);
-				G_addEdge(cur,target);
+				if(target)
+					G_addEdge(cur,target);
+				else
+				{
+					printf("Cannot find label %s\nSee in runtime.s or undefined label\n",Temp_labelstring(labels->head));//For debugging
+				}
 			}
 		}
 	}

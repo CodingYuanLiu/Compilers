@@ -209,7 +209,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 				}
 				G_node outnode = TAB_look(tempTab,outn->head);
 				
-				if(!(G_inNodeList(defnode,G_adj(outnode))) && !(intemp(outn->head,FG_use(flownode))))
+				if(!(G_inNodeList(defnode,G_adj(outnode))) && !(intemp(FG_use(flownode),outn->head)))
 				{
 					G_addEdge(outnode,defnode);
 					G_addEdge(defnode,outnode);

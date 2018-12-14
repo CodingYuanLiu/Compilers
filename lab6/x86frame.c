@@ -211,7 +211,9 @@ T_stm F_procEntryExit1(F_frame frame,T_stm stm)
 		}
 	}
 	if(bind)
+	{
 		bind = T_Seq(bind,stm);
+	}
 	else
 		bind = stm;
 	return bind;
@@ -222,7 +224,7 @@ AS_instrList F_procEntryExit2(AS_instrList body)
 	static Temp_tempList returnSink = NULL;
 	if(!returnSink)
 		returnSink = Temp_TempList(rsp,NULL);
-	return AS_splice(body,AS_InstrList(AS_Oper("",NULL,returnSink,NULL),NULL));
+	return AS_splice(body,AS_InstrList(AS_Oper("",NULL,returnSink,AS_Targets(NULL)),NULL));
 }
 
 AS_proc F_procEntryExit3(F_frame frame,AS_instrList body)

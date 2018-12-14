@@ -90,6 +90,7 @@ static char fs[256];
 AS_instrList F_codegen(F_frame f, T_stmList stmList) {
     AS_instrList list;
     T_stmList s;
+    emit(AS_Label(Temp_labelstring(f->name),f->name));
     savecalleeregs();
     
     sprintf(fs,"%s_framesize",S_name(f->name));
@@ -312,11 +313,16 @@ static Temp_temp munchExp(T_exp e)
 
         case T_TEMP:
         {
-            if(e->u.TEMP == F_FP())
+            Temp_temp temp = e->u.TEMP;
+            if(temp == F_FP())
             {
-                printf("FP must be handled above!"); // for debugging.
+                //leaq fs(%rsp),temp. use temp to replace fp
+                char *inst = checked_malloc(MAXLEN);
+                temp = Temp_newtemp();
+                sprintf(inst,"leaq %s(`s0),`d0",fs);
+                emit(AS_Move(inst,L(temp,NULL),L(F_SP(),NULL)));
             }
-            return e->u.TEMP;
+            return temp;
         }
         
         //movq NAME Temp
