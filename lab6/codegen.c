@@ -348,7 +348,7 @@ static Temp_temp munchExp(T_exp e)
             munchArgs(e->u.CALL.args);
 
             sprintf(inst, "call %s", Temp_labelstring(func));
-	        emit(AS_Oper(inst, caller_saved, NULL, AS_Targets(Temp_LabelList(func,NULL))));
+	        emit(AS_Oper(inst, caller_saved, NULL, AS_Targets(NULL)));
 	        emit(AS_Move("movq `s0, `d0", L(r, NULL), L(F_RAX(), NULL)));
 
             return r;

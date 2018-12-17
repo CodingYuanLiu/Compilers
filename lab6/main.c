@@ -70,8 +70,7 @@ static void doProc(FILE *out, F_frame frame, T_stm body)
  AS_printInstrList(stdout, iList, Temp_layerMap(F_tempMap, Temp_name()));
  printf("----======before RA=======-----\n");
 
- G_graph fg = FG_AssemFlowGraph(iList,frame);  /* 10.1 */
- //struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
+//struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
 /*
  fprintf(out, "BEGIN function\n");
  AS_printInstrList (out, proc->body,
