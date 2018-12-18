@@ -224,7 +224,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 					continue;
 				}
 				G_node usenode = TAB_look(tempTab,uses->head);
-				if(Live_isinMoveList(usenode,defnode,lg.moves))
+				if(!Live_isinMoveList(usenode,defnode,lg.moves))
 				{
 					lg.moves = Live_MoveList(usenode,defnode,lg.moves);
 				}
@@ -313,3 +313,41 @@ bool tempequal(Temp_tempList old,Temp_tempList neww)
 	return TRUE;
 }
 
+Live_moveList Live_IntersectionMoveList(Live_moveList left,Live_moveList right)
+{
+	Live_moveList cur = NULL;
+	for(;left;left = left->tail)
+	{
+		if(Live_isinMoveList(left->src,left->dst,right))
+		{
+			cur = Live_MoveList(left->src,left->dst,cur);
+		}
+	}
+	return cur;
+}
+
+Live_moveList Live_UnionMoveList(Live_moveList left,Live_moveList right)
+{
+	Live_moveList cur = left;
+	for(;right;right = right->tail)
+	{
+		if(!Live_isinMoveList(right->src,right->dst,left))
+		{
+			cur = Live_MoveList(right->src,right->dst,cur);
+		}
+	}
+	return cur;
+}
+
+Live_moveList Live_SubMoveList(Live_moveList left,Live_moveList right)
+{
+	Live_moveList cur = NULL;
+	for(;left;left = left->tail)
+	{
+		if(!Live_isinMoveList(left->src,left->dst,right))
+		{
+			cur = Live_MoveList(left->src,left->dst,cur);
+		}
+	}
+	return cur;
+}

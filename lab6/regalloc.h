@@ -15,13 +15,22 @@ static void AssignColors();
 static void RewriteProgram(F_frame f,AS_instrList ilist);
 static bool MoveRelated(G_node node);
 static G_nodeList Adjacent(G_node n);
+static Live_moveList NodeMoves(G_node n);
+//static void push(G_node n,G_nodeList stack);
+static void DecrementDegree(G_node n);
+static void EnableMoves(G_nodeList nodes);
+
+static G_node GetAlias(G_node t);
+
+/* Tool Functions*/
+static bool precolored(G_node n);
 
 
 static G_nodeList simplifyWorklist;
 static G_nodeList freezeWorklist;
 static G_nodeList spillWorklist;
 
-static G_nodeList precolored;
+//static G_nodeList precolored;
 static G_nodeList coloredNodes;
 static G_nodeList spilledNodes;
 static G_nodeList coalescedNodes;
@@ -37,9 +46,10 @@ static Live_moveList activeMoves;
 static G_nodeList selectStack;
 
 //Nodes information
-static G_table degreeTab;
-static G_table colorTab;
-static G_table aliasTab;
-//static G_table moveListTab;
+//The binding is a pointer.
+static G_table degreeTab; // binding points to an int (degree).
+static G_table colorTab; //binding points to an int (color).
+static G_table aliasTab; // binding points to a G_node pointer.
+static G_table moveListTab;// binding points to a Live_movelist pointer.
 
 #endif

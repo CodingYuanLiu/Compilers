@@ -16,7 +16,14 @@
 #define K 15
 static struct Live_graph live;
 
-/*======================================================================*/
+static bool precolor(G_node n)
+{
+	return (*(int *)G_look(colorTab,n) != 0);
+}
+
+
+
+/*============================== Procedure Functions ===============================*/
 struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 	//your code here
 	struct RA_result ret;
@@ -86,6 +93,7 @@ static void Build()
 	degreeTab = G_empty();
 	colorTab = G_empty();
 	aliasTab = G_empty();
+	moveListTab = G_empty();
 
 	G_nodeList nodes = G_nodes(live.graph);
 	for(;nodes; nodes = nodes->tail)
@@ -124,6 +132,19 @@ static void Build()
 		G_node *alias = checked_malloc(sizeof(G_node));
 		*alias = nodes->head;
 		G_enter(aliasTab,nodes->head,alias);
+
+		/* Initial movelist table*/
+		Live_moveList list = worklistMoves;
+		Live_moveList *movelist = NULL;
+		for(;list;list = list->tail)
+		{
+			if(list->src == nodes->head || list->dst == nodes->head)
+			{
+				*movelist = Live_MoveList(list->src,list->dst,*movelist);
+			}
+		}
+		G_enter(moveListTab,nodes->head,movelist);
+
 	}
 }
 
@@ -160,3 +181,94 @@ static G_nodeList Adjacent(G_node n)
 	G_nodeList adjList = G_succ(n);
 	return G_SubNodeList(adjList,G_UnionNodeList(selectStack,coalescedNodes));
 }
+
+static Live_moveList NodeMoves(G_node n)
+{
+	Live_moveList *movelist = G_look(moveListTab,n);
+	return Live_IntersectMoveList((*movelist),Live_UnionMoveList(activeMoves,worklistMoves));
+}
+
+static bool MoveRelated(G_node n)
+{
+	return NodeMoves(n) != NULL;
+}
+
+static void Simplify()
+{
+	G_node node = simplifyWorklist->head;
+	simplifyWorklist = simplifyWorklist->tail;
+	//push n to stack
+	selectStack = G_NodeList(node,selectStack);
+	G_nodeList adj = G_adj(node);
+	for(;adj;adj = adj->tail)
+	{
+		DecrementDegree(adj->head);
+	}
+}
+
+static void DecrementDegree(G_node n)
+{
+	int *degree = G_look(degreeTab,n);
+	int d = *degree;// Optimization
+	*degree = *degree - 1;
+	int* color = G_look(colorTab,n);
+	if(d == K && *color != 0)
+	{
+		EnableMoves(G_NodeList(n,Adjacent(n)));
+		spillWorklist = G_SubNodeList(spillWorklist,G_NodeList(n,NULL));
+		if(MoveRelated(n))
+		{
+			freezeWorklist = G_NodeList(n,freezeWorklist);
+		}
+		else{
+			simplifyWorklist = G_NodeList(n,simplifyWorklist);
+		}
+	}
+}
+
+static void EnableMoves(G_nodeList nodes)
+{
+	for(;nodes;nodes = nodes->tail)
+	{
+		for(Live_moveList m = NodeMoves(nodes->head);m;m = m->tail)
+		{
+			if(Live_isinMoveList(activeMoves,m->src,m->dst))
+			{
+				activeMoves = Live_SubMoveList(activeMoves,Live_MoveList(m->src,m->dst,NULL));
+				worklistMoves = Live_MoveList(m->src,m->dst,worklistMoves);	
+			}
+		}
+	}
+}
+
+/* coalesce instructions in worklistMoves.*/
+static void Coalesce()
+{
+	G_node x,y,u,v;
+	x = worklistMoves->src;
+	y = worklistMoves->dst;
+
+	//if y is in precolored
+	if(precolor(GetAlias(y)))
+	{
+		u = GetAlias(y);
+		v = GetAlias(x);
+	}
+	else
+	{
+		u = GetAlias(x);
+		v = GetAlias(y);
+	}
+	worklistMoves = worklistMoves->tail;
+	
+	if(u == v)
+	{
+		coalescedMoves = Live_MoveList(x,y,coalescedMoves);
+		AddWorkList(u);
+	}
+	else if (precolor(v) && G_inNodeList(u,adj(v)))
+	{
+		
+	}
+}
+
