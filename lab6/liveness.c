@@ -21,8 +21,8 @@ Live_moveList Live_MoveList(G_node src, G_node dst, Live_moveList tail) {
 
 
 Temp_temp Live_gtemp(G_node n) {
-	//your code here.
-	return NULL;
+	Temp_temp t = G_nodeInfo(n);
+	return t;
 }
 
 bool Live_isinMoveList(G_node src,G_node dst,Live_moveList tail)

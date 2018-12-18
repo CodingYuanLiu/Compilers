@@ -167,4 +167,41 @@ void *G_look(G_table t, G_node node)
   return TAB_look(t, node);
 }
 
+G_nodeList G_UnionNodeList(G_nodeList left,G_nodeList right)
+{
+  G_nodeList cur = left;
+  for(;right;right = right->tail)
+  {
+    if(!G_inNodeList(right->head,left))
+    {
+      cur = G_NodeList(right->head,cur);
+    }
+  }
+  return cur;
+}
 
+G_nodeList G_SubNodeList(G_nodeList left,G_nodeList right)
+{
+  G_nodeList cur = NULL;
+  for(;left;left = left->tail)
+  {
+    if(!G_inNodeList(left->head,right))
+    {
+      cur = G_NodeList(left->head,cur);
+    }
+  }
+  return cur;
+}
+
+G_nodeList G_IntersectNodeList(G_nodeList left,G_nodeList right)
+{
+  G_nodeList cur = NULL;
+  for(;left ; left = left->tail)
+  {
+    if(G_inNodeList(left->head,right))
+    {
+      cur = G_NodeList(left->head,cur);
+    }
+  }
+  return cur;
+}

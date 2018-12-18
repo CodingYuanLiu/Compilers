@@ -13,6 +13,9 @@ static void Freeze();
 static void SelectSpill();
 static void AssignColors();
 static void RewriteProgram(F_frame f,AS_instrList ilist);
+static bool MoveRelated(G_node node);
+static G_nodeList Adjacent(G_node n);
+
 
 static G_nodeList simplifyWorklist;
 static G_nodeList freezeWorklist;
@@ -32,5 +35,11 @@ static Live_moveList activeMoves;
 
 //stack 
 static G_nodeList selectStack;
+
+//Nodes information
+static G_table degreeTab;
+static G_table colorTab;
+static G_table aliasTab;
+//static G_table moveListTab;
 
 #endif

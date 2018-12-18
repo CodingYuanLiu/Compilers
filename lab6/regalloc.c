@@ -13,6 +13,10 @@
 #include "table.h"
 #include "flowgraph.h"
 
+#define K 15
+static struct Live_graph live;
+
+/*======================================================================*/
 struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 	//your code here
 	struct RA_result ret;
@@ -21,7 +25,7 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 		done = TRUE;
 		/*Liveness Analysis*/
 		G_graph fg = FG_AssemFlowGraph(il,f);
-		struct Live_graph live = Live_liveness(fg);
+	    live = Live_liveness(fg);
 
 		Build();
 		
@@ -47,7 +51,112 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 			}
 		}
 
-		//To be continued...
+		AssignColors();
+
+		if(spilledNodes)
+		{
+			RewriteProgram(f,&il);
+			done = FALSE;
+		}
+
 	}while(!done);
+	ret.coloring = AssignRegisters(live);
+	ret.il = il;
 	return ret;
+}
+
+static void Build()
+{
+	simplifyWorklist = NULL;
+	freezeWorklist = NULL;
+	spillWorklist = NULL;
+
+	spilledNodes = NULL;
+	coalescedNodes = NULL;
+	coloredNodes = NULL;
+	selectStack = NULL;
+	//precolored
+
+	coalescedMoves = NULL;
+	constrainedMoves = NULL;
+	frozenMoves = NULL;
+	worklistMoves = live.moves;
+	activeMoves = NULL;
+
+	degreeTab = G_empty();
+	colorTab = G_empty();
+	aliasTab = G_empty();
+
+	G_nodeList nodes = G_nodes(live.graph);
+	for(;nodes; nodes = nodes->tail)
+	{
+		/* Initial degree */
+		int *degree = checked_malloc(sizeof(int));
+		*degree = 0;
+		for(G_nodeList cur = G_succ(nodes->head);cur ; cur = cur->tail)
+		{
+			(*degree)++;
+		}
+		G_enter(degreeTab,nodes->head,degree);
+
+		/* Initial color */
+		int *color = checked_malloc(sizeof(int));
+		Temp_temp temp = Live_gtemp(nodes->head);
+		if(temp == F_RAX())				*color = 1;
+		else if(temp == F_RBX())		*color = 2;
+		else if (temp = F_RCX())  		*color = 3;
+		else if (temp = F_RDX())  		*color = 4;
+		else if (temp = F_RSI())  		*color = 5;
+		else if (temp = F_RDI())  		*color = 6;
+		else if (temp = F_RBP())		*color = 7;
+		else if (temp = F_R8())   		*color = 8;
+		else if (temp = F_R9())   		*color = 9;
+		else if (temp = F_R10())  		*color = 10;
+		else if (temp = F_R11())  		*color = 11;
+		else if (temp = F_R12())  		*color = 12;
+		else if (temp = F_R13())  		*color = 13;
+		else if (temp = F_R14())  		*color = 14;
+		else if (temp = F_R15()) 		*color = 15;
+		else 							*color = 0; //Temp register
+		G_enter(colorTab,nodes->head,color);
+		
+		/* Initial alias table */
+		G_node *alias = checked_malloc(sizeof(G_node));
+		*alias = nodes->head;
+		G_enter(aliasTab,nodes->head,alias);
+	}
+}
+
+static void MakeWorklist()
+{
+	G_nodeList nodes = G_nodes(live.graph);
+	for(;nodes;nodes = nodes->tail)
+	{
+		G_node node = nodes->head;
+		int *degree = G_look(degreeTab,node);
+		int *color = G_look(colorTab,node);
+		//Reject precolored register
+		if(*color != 0){
+			continue;
+		}
+		if(*degree >= K)
+		{
+			spillWorklist = G_NodeList(node,spillWorklist);
+		}
+		else if(MoveRelated(node))
+		{
+			freezeWorklist = G_NodeList(node,freezeWorklist);
+		}
+		else
+		{
+			simplifyWorklist = G_NodeList(node,simplifyWorklist);
+		}
+	}
+}
+
+static G_nodeList Adjacent(G_node n)
+{
+	/* adjList[n] \ (selectStack U coalescedNodes */
+	G_nodeList adjList = G_succ(n);
+	return G_SubNodeList(adjList,G_UnionNodeList(selectStack,coalescedNodes));
 }
