@@ -20,16 +20,29 @@ static Live_moveList NodeMoves(G_node n);
 static void DecrementDegree(G_node n);
 static void EnableMoves(G_nodeList nodes);
 
+/* Coalesce functions */
 static G_node GetAlias(G_node t);
+static void AddWorkList(G_node n);
+static bool OK(G_node v,G_node u);
+static bool Conservative(G_nodeList adj);
+static void Combine(G_node u,G_node v);
+static void AddEdge(G_node u,G_node v);
+
+static void FreezeMoves(G_node n);
 
 /* Tool Functions*/
-static bool precolored(G_node n);
+static bool precolor(G_node n);
+static int degree(G_node n);
+static G_node alias(G_node n);
+static Live_moveList movelist(G_node n);
 
-
+/* Data Stucture*/
+//Worklist
 static G_nodeList simplifyWorklist;
 static G_nodeList freezeWorklist;
 static G_nodeList spillWorklist;
 
+//Node sets
 //static G_nodeList precolored;
 static G_nodeList coloredNodes;
 static G_nodeList spilledNodes;
@@ -39,7 +52,7 @@ static G_nodeList coalescedNodes;
 static Live_moveList coalescedMoves;
 static Live_moveList constrainedMoves;
 static Live_moveList frozenMoves;
-static Live_moveList worklistMoves;
+static Live_moveList worklistMoves;//All move instructions.
 static Live_moveList activeMoves;
 
 //stack 
@@ -51,5 +64,7 @@ static G_table degreeTab; // binding points to an int (degree).
 static G_table colorTab; //binding points to an int (color).
 static G_table aliasTab; // binding points to a G_node pointer.
 static G_table moveListTab;// binding points to a Live_movelist pointer.
+/* u in adjSet(u,v) can be replaced by G_inNodeList(u,G_adj(v)) */
+/* adjList[u] can be replaced by G_adj(u) */
 
 #endif
