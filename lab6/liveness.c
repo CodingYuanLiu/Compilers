@@ -54,8 +54,8 @@ struct Live_graph Live_liveness(G_graph flow) {
 	for(;flownodes;flownodes = flownodes->tail)
 	{
 		flownode = flownodes->head;
-		G_enter(in,flownode,Temp_TempList(NULL,NULL)); //Don't forget the TempList may be empty
-		G_enter(out,flownode,Temp_TempList(NULL,NULL));
+		G_enter(in,flownode,NULL); //Don't forget the TempList may be empty
+		G_enter(out,flownode,NULL);
 	}
 	
 	bool fixed_point = FALSE;
@@ -64,8 +64,8 @@ struct Live_graph Live_liveness(G_graph flow) {
 		for(;flownodes;flownodes = flownodes->tail)
 		{
 			flownode = flownodes->head;
-			Temp_tempList in_n_old = (Temp_tempList)G_look(in,flownode);
-			Temp_tempList out_n_old = (Temp_tempList)G_look(out,flownode);
+			Temp_tempList in_n_old = *(Temp_tempList *)G_look(in,flownode);
+			Temp_tempList out_n_old = *(Temp_tempList *)G_look(out,flownode);
 			Temp_tempList in_n = NULL,out_n = NULL;
 			/* pseudocode:
 			in[n] = use[n] and (out[n] – def[n])
@@ -313,7 +313,7 @@ bool tempequal(Temp_tempList old,Temp_tempList neww)
 	return TRUE;
 }
 
-Live_moveList Live_IntersectionMoveList(Live_moveList left,Live_moveList right)
+Live_moveList Live_IntersectMoveList(Live_moveList left,Live_moveList right)
 {
 	Live_moveList cur = NULL;
 	for(;left;left = left->tail)

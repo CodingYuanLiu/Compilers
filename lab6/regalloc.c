@@ -1,19 +1,8 @@
-#include <stdio.h>
-#include "util.h"
-#include "symbol.h"
-#include "temp.h"
-#include "tree.h"
-#include "absyn.h"
-#include "assem.h"
-#include "frame.h"
-#include "graph.h"
-#include "liveness.h"
-#include "color.h"
 #include "regalloc.h"
-#include "table.h"
-#include "flowgraph.h"
 
 #define K 15
+#define MAXLEN 256
+
 static struct Live_graph live;
 
 /*============================== Tool Functions ===============================*/
@@ -80,6 +69,7 @@ struct RA_result RA_regAlloc(F_frame f, AS_instrList il) {
 		}
 
 	}while(!done);
+
 	ret.coloring = AssignRegisters(live);
 	ret.il = il;
 	return ret;
@@ -228,6 +218,9 @@ static G_nodeList Adjacent(G_node n)
 //Relative Moves with n.
 static Live_moveList NodeMoves(G_node n)
 {
+
+	// If n is combined now(Alias(n) != n), it doesn't matter.Because n's movelist was 
+	// modified when combining.
 	Live_moveList *movelist = G_look(moveListTab,n);
 	return Live_IntersectMoveList((*movelist),Live_UnionMoveList(activeMoves,worklistMoves));
 }
@@ -279,7 +272,7 @@ static void EnableMoves(G_nodeList nodes)
 	{
 		for(Live_moveList m = NodeMoves(nodes->head);m;m = m->tail)
 		{
-			if(Live_isinMoveList(activeMoves,m->src,m->dst))
+			if(Live_isinMoveList(m->src,m->dst,activeMoves))
 			{
 				activeMoves = Live_SubMoveList(activeMoves,Live_MoveList(m->src,m->dst,NULL));
 				worklistMoves = Live_MoveList(m->src,m->dst,worklistMoves);	
@@ -381,7 +374,7 @@ static G_node GetAlias(G_node t)
 {
 	if(G_inNodeList(t,coalescedNodes))
 	{
-		return GetAlias(Alias(t));
+		return GetAlias(alias(t));
 	}
 	else
 	{
@@ -406,7 +399,7 @@ static void Combine(G_node u,G_node v)
 	*(Live_moveList *)G_look(moveListTab,u) = Live_UnionMoveList(movelist(u),movelist(v));
 
 	//If it's necessary?
-	EnableMoves(v);
+	//EnableMoves(G_NodeList(v,NULL));
 
 	for(G_nodeList adj = Adjacent(v);adj;adj = adj->tail)
 	{
@@ -414,7 +407,7 @@ static void Combine(G_node u,G_node v)
 		AddEdge(t,u);
 		DecrementDegree(t);
 	}
-	if(degree(u) >= K && G_inNodeList(u,freezeWorklist)))
+	if(degree(u) >= K && G_inNodeList(u,freezeWorklist))
 	{
 		freezeWorklist = G_SubNodeList(freezeWorklist,G_NodeList(u,NULL));
 		spillWorklist = G_NodeList(u,spillWorklist);
@@ -429,6 +422,8 @@ static void Freeze()
 	FreezeMoves(u);
 }
 
+//Let moves of u in frozenMoves out of activeMoves.
+//If v is only move related with u, then add it to simplify worklist.
 static void FreezeMoves(G_node u)
 {
 	for(Live_moveList m = NodeMoves(u); m; m = m->tail)
@@ -440,7 +435,7 @@ static void FreezeMoves(G_node u)
 		G_node v;
 		if(GetAlias(y) == GetAlias(u))
 		{
-			v = GetAlias(x)
+			v = GetAlias(x);
 		}
 		else
 		{
@@ -454,4 +449,199 @@ static void FreezeMoves(G_node u)
 			simplifyWorklist = G_NodeList(v,simplifyWorklist);
 		}
 	}
+}
+
+static void SelectSpill()
+{
+	G_node m = NULL;
+	//calculate spilling weight
+	int max = 0;
+	for(G_nodeList spill = spillWorklist;spill;spill = spill->tail)
+	{
+		Temp_temp t = G_nodeInfo(spill->head);
+		if(intemp(notSpillTemps,t))
+		{
+			continue;
+		}
+		if(degree(spill->head) > max)
+		{
+			m = spill->head;
+			max = degree(m);
+		}
+	}
+	if(!m)
+	{
+		spillWorklist = G_SubNodeList(spillWorklist,G_NodeList(m,NULL));
+		simplifyWorklist = G_NodeList(m,simplifyWorklist);
+		FreezeMoves(m);
+	}
+	else{
+		m = spillWorklist->head;
+		spillWorklist = spillWorklist->tail;
+		simplifyWorklist = G_NodeList(m,simplifyWorklist);
+		FreezeMoves(m);
+	}
+}
+
+static void AssignColors()
+{
+	bool okColors[K+1];
+	spilledNodes = NULL;
+	while(selectStack)
+	{
+		okColors[0] = FALSE;
+		for(int i=1;i<K;i++)
+		{
+			okColors[i] = TRUE;
+		}
+
+		G_node n = selectStack->head;
+		selectStack = selectStack->tail;
+
+		for(G_nodeList succs = G_succ(n);succs;succs = succs->tail)
+		{
+			int *color = G_look(colorTab,GetAlias(succs->head));
+			okColors[*color] = FALSE;
+		}
+
+		int i;
+		bool realSpill = TRUE;
+		for(i=1;i<K+1;i++)
+		{
+			if(okColors[i])
+			{
+				realSpill = FALSE;
+				break;
+			}
+		}
+		if(realSpill)
+		{
+			spilledNodes = G_NodeList(n,spilledNodes);
+		}
+		else{
+			int *color = G_look(colorTab,n);
+			*color = i;
+		}
+	}
+	for(G_nodeList p = G_nodes(live.graph);p;p = p->tail)
+	{
+		*(int *)G_look(colorTab,p->head) = *(int *)G_look(colorTab,GetAlias(p->head));
+	}
+}
+
+static void RewriteProgram(F_frame f,AS_instrList *pil)
+{
+	notSpillTemps = NULL;
+	AS_instrList il = *pil,
+	instr, //every instruction in il
+	last,  // last handled instruction 
+	next, //next instruction
+	new_instr; //new_instruction after spilling.
+	int off;
+	char* fs = checked_malloc(MAXLEN);
+	sprintf(fs,"%s_framesize",f->name);
+	while(spilledNodes)
+	{
+		G_node cur = spilledNodes->head;
+		spilledNodes = spilledNodes->tail;
+		Temp_temp spilledtemp = Live_gtemp(cur);
+		off = F_Spill(f);
+		instr=il;
+		last = NULL;
+		while(instr)
+		{
+			Temp_temp t = NULL;
+			next = instr->tail;
+			Temp_tempList *def,*use;
+			if(instr->head->kind == I_MOVE)
+			{
+				*def = instr->head->u.MOVE.dst;
+				*use = instr->head->u.MOVE.src;
+			}
+			else if(instr->head->kind == I_LABEL)
+			{
+				def = NULL;
+				use = NULL;
+			}
+			else if(instr->head->kind == I_OPER)
+			{
+				*def = instr->head->u.OPER.dst;
+				*use = instr->head->u.OPER.src;
+			}
+
+			if(use && intemp(*use,spilledtemp))
+			{
+				t = Temp_newtemp();
+				notSpillTemps = Temp_TempList(t,notSpillTemps);
+
+				//Replace spilledtemp by t.
+				*use = replaceTempList(*use,spilledtemp,t);
+				char *assem = checked_malloc(MAXLEN);
+				sprintf(assem,"movq (%s+%d)(%%rsp),`d0\n",fs,off);
+				//Add the new instruction betfore the old one.
+				new_instr = AS_InstrList(AS_Oper(assem,Temp_TempList(t,NULL),NULL,AS_Targets(NULL)),instr);
+
+				if(last)
+				{
+					last->tail = new_instr;
+				}
+				else//instr is the first instruction of il.
+				{
+					il = new_instr;
+				}
+			}
+
+			last = instr;
+
+			if(def && intemp(*def,spilledtemp))
+			{
+				if(!t)
+				{
+					t = Temp_newtemp();
+					notSpillTemps = Temp_TempList(t,notSpillTemps);
+				}
+				*def = replaceTempList(*def,spilledtemp,t);
+				char *assem = checked_malloc(MAXLEN);
+				sprintf(assem,"movq `s0,(%s+%d)(%%rsp)\n",off);
+				//Add the instruction after the old one.
+				instr->tail = AS_InstrList(AS_Oper(assem,NULL,Temp_TempList(t,NULL),AS_Targets(NULL)),next);
+				last = instr->tail;
+			}
+			instr = next; 
+		}
+	}
+	*pil = il;
+}
+
+static Temp_tempList replaceTempList(Temp_tempList instr,Temp_temp old,Temp_temp new)
+{
+	if(instr)
+	{
+		if(instr->head == old)
+		{
+			return Temp_TempList(new,replaceTempList(instr->tail,old,new));
+		}
+		else
+		{
+			return Temp_TempList(instr->head,replaceTempList(instr->tail,old,new));
+		}
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+static Temp_map AssignRegisters(struct Live_graph g)
+{
+	Temp_map res = Temp_empty();
+	G_nodeList nodes = G_nodes(g.graph);
+
+	Temp_enter(res,F_SP(),"%%rsp");
+	for(;nodes;nodes = nodes->tail)
+	{
+		int *color = G_look(colorTab,nodes->head);
+		Temp_enter(res,Live_gtemp(nodes->head),hard_reg[*color]);
+	}
+	return res;
 }

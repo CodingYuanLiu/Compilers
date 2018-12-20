@@ -255,6 +255,13 @@ T_exp F_externalCall(string s,T_expList args)
 	return T_Call(T_Name(Temp_namedlabel(s)),args);
 }
 
+int F_Spill(F_frame f)
+{
+	f->s_offset -= wordsize;
+	return f->s_offset;
+}
+
+
 Temp_temp F_FP()
 {
 	if(!fp)
@@ -267,7 +274,6 @@ Temp_temp F_RV()
 	if(!rax)
 	{
 		rax = Temp_newtemp();
-//		Temp_enter(F_tempMap,rax,String("%rax"));
 	}
 	return rax;	
 }
@@ -277,7 +283,6 @@ Temp_temp F_SP()
 	if(!rsp)
 	{
 		rsp = Temp_newtemp();
-//		Temp_enter(F_tempMap,rsp,String("%rsp"));
 	}
 	return rsp;	
 }
@@ -287,7 +292,6 @@ Temp_temp F_RDI()
 	if(!rdi)
 	{
 		rdi = Temp_newtemp();
-//		Temp_enter(F_tempMap,rdi,String("%rdi"));
 	}
 	return rdi;	
 }

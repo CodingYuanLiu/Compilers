@@ -25,7 +25,7 @@ Temp_tempList SubSets(Temp_tempList left,Temp_tempList right);
 bool tempequal(Temp_tempList old,Temp_tempList neww);
 bool intemp(Temp_tempList left,Temp_temp right);
 
-Live_moveList Live_IntersectionMoveList(Live_moveList left,Live_moveList right);
+Live_moveList Live_IntersectMoveList(Live_moveList left,Live_moveList right);
 Live_moveList Live_UnionMoveList(Live_moveList left, Live_moveList right);
 Live_moveList Live_SubMoveList(Live_moveList left,Live_moveList right);
 

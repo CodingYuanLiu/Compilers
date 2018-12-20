@@ -44,7 +44,7 @@ static void doProc(FILE *out, F_frame frame, T_stm body)
  AS_instrList iList;
  struct C_block blo;
 
- F_tempMap = Temp_empty();
+ //F_tempMap = Temp_empty();
 
  printf("doProc for function %s:\n", S_name(F_name(frame)));
  printStmList(stdout, T_StmList(body, NULL));
