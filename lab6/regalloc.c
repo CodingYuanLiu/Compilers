@@ -151,7 +151,8 @@ static void Build()
 
 		/* Initial movelist table*/
 		Live_moveList list = worklistMoves;
-		Live_moveList *movelist = NULL;
+		Live_moveList *movelist = checked_malloc(sizeof(movelist));
+		*movelist = NULL;
 		for(;list;list = list->tail)
 		{
 			if(list->src == nodes->head || list->dst == nodes->head)

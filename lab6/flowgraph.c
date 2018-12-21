@@ -61,7 +61,7 @@ G_graph FG_AssemFlowGraph(AS_instrList il, F_frame f)
 		{
 			G_addEdge(prev,cur);
 		}
-
+		
 		/* Add labels to the TABtable */
 		if(instr->kind == I_LABEL)
 		{

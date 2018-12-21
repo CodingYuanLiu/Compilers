@@ -70,13 +70,13 @@ static void doProc(FILE *out, F_frame frame, T_stm body)
  AS_printInstrList(stdout, iList, Temp_layerMap(F_tempMap, Temp_name()));
  printf("----======before RA=======-----\n");
 
-//struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
-/*
- fprintf(out, "BEGIN function\n");
+struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
+
+// fprintf(out, "BEGIN function\n");
  AS_printInstrList (out, proc->body,
                        Temp_layerMap(F_tempMap, ra.coloring));
- fprintf(out, "END function\n");
-*/
+ //fprintf(out, "END function\n");
+
  //Part of TA's implementation. Just for reference.
  /*
  AS_rewrite(ra.il, Temp_layerMap(F_tempMap, ra.coloring));

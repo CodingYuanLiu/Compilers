@@ -171,7 +171,7 @@ static void munchStm(T_stm s)
             Temp_label label = s->u.LABEL;
             char *lab = checked_malloc(MAXLEN);
             sprintf(lab,"%s",Temp_labelstring(label)); //".L2:". Colon will be added at AS_print()
-            emit(AS_Label(lab,label));//The second argument of AS_Label() seems useless.
+            emit(AS_Label(lab,label));
             return;
         }
 

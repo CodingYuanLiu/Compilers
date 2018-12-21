@@ -54,12 +54,12 @@ struct Live_graph Live_liveness(G_graph flow) {
 	for(;flownodes;flownodes = flownodes->tail)
 	{
 		flownode = flownodes->head;
-		G_enter(in,flownode,NULL); //Don't forget the TempList may be empty
-		G_enter(out,flownode,NULL);
+		G_enter(in,flownode,checked_malloc(sizeof(Temp_tempList))); //Don't forget the TempList may be empty
+		G_enter(out,flownode,checked_malloc(sizeof(Temp_tempList)));
 	}
 	
 	bool fixed_point = FALSE;
-	do{
+	while(!fixed_point){
 		flownodes = G_nodes(flow);
 		for(;flownodes;flownodes = flownodes->tail)
 		{
@@ -75,7 +75,8 @@ struct Live_graph Live_liveness(G_graph flow) {
 			G_nodeList succ = G_succ(flownode);
 			for(;succ;succ = succ->tail)
 			{
-				out_n = UnionSets(out_n,G_look(in,succ->head));
+				Temp_tempList in_succ = *(Temp_tempList *)G_look(in,succ->head);
+				out_n = UnionSets(out_n,in_succ);
 			}
 			in_n = UnionSets(FG_use(flownode),
 						SubSets(out_n,FG_def(flownode)));
@@ -83,15 +84,13 @@ struct Live_graph Live_liveness(G_graph flow) {
 			if(tempequal(in_n_old,in_n) && tempequal(out_n_old,out_n))
 			{
 				fixed_point = TRUE;
-				break;
 			}
 			/* Update in_n and out_n*/
-			{
-				*(Temp_tempList *)G_look(in,flownode) = in_n;
-				*(Temp_tempList *)G_look(out,flownode) = out_n;
-			}
+			*(Temp_tempList *)G_look(in,flownode) = in_n;
+			*(Temp_tempList *)G_look(out,flownode) = out_n;
+			
 		}
-	}while(!fixed_point);
+	}
 
 	/* Then use the result of the livemap to construct interfere graph */
 	/* Construct the graph */
@@ -196,37 +195,40 @@ struct Live_graph Live_liveness(G_graph flow) {
 		/* Else,the instruction is MOVE*/
 		else
 		{
-			if(def->head == F_SP())
+			for(;def;def = def->tail)
 			{
-				continue;
-			}
-			G_node defnode = TAB_look(tempTab,def->head);
-			for(;outn;outn = outn)
-			{
-				if(outn->head == F_SP())
+				if(def->head == F_SP())
 				{
 					continue;
 				}
-				G_node outnode = TAB_look(tempTab,outn->head);
+				G_node defnode = TAB_look(tempTab,def->head);
+				for(;outn;outn = outn->tail)
+				{
+					if(outn->head == F_SP())
+					{
+						continue;
+					}
+					G_node outnode = TAB_look(tempTab,outn->head);
 				
-				if(!(G_inNodeList(defnode,G_adj(outnode))) && !(intemp(FG_use(flownode),outn->head)))
-				{
-					G_addEdge(outnode,defnode);
-					G_addEdge(defnode,outnode);
-				}			
-			}
-
-			/* Add it to the movelist. It's for coalescence in ra.*/
-			for(Temp_tempList uses = FG_use(flownode);uses;uses = uses->tail)
-			{
-				if(uses->head == F_SP())
-				{
-					continue;
+					if(!(G_inNodeList(defnode,G_adj(outnode))) && !(intemp(FG_use(flownode),outn->head)))
+					{
+						G_addEdge(outnode,defnode);
+						G_addEdge(defnode,outnode);
+					}			
 				}
-				G_node usenode = TAB_look(tempTab,uses->head);
-				if(!Live_isinMoveList(usenode,defnode,lg.moves))
+			
+				/* Add it to the movelist. It's for coalescence in ra.*/
+				for(Temp_tempList uses = FG_use(flownode);uses;uses = uses->tail)
 				{
-					lg.moves = Live_MoveList(usenode,defnode,lg.moves);
+					if(uses->head == F_SP())
+					{
+						continue;
+					}
+					G_node usenode = TAB_look(tempTab,uses->head);
+					if(!Live_isinMoveList(usenode,defnode,lg.moves))
+					{
+						lg.moves = Live_MoveList(usenode,defnode,lg.moves);
+					}
 				}
 			}
 		}
@@ -239,15 +241,8 @@ Temp_tempList UnionSets(Temp_tempList left,Temp_tempList right)
 	Temp_tempList unionn = left;
 	for(;right;right = right->tail)
 	{
-		if(!right->head)//Right is empty
-		{
-			return unionn;
-		}
-		else
-		{
-			if(!intemp(unionn,right->head))
-				unionn = Temp_TempList(right->head,unionn);
-		}
+		if(!intemp(unionn,right->head))
+			unionn = Temp_TempList(right->head,unionn);
 	}
 	return unionn;
 }
@@ -257,8 +252,6 @@ Temp_tempList SubSets(Temp_tempList left, Temp_tempList right)
 	Temp_tempList sub = NULL;
 	for(;left;left = left->tail)
 	{
-		if(!left->head)
-			break;
 		if(!intemp(right,left->head))
 		{
 			sub = Temp_TempList(left->head,right);
@@ -272,13 +265,8 @@ bool intemp(Temp_tempList list,Temp_temp temp)
 {
 	for(;list;list = list->tail)
 	{
-		if(!list->head)
-			return FALSE;
-		else
-		{
-			if(list->head == temp)
+		if(list->head == temp)
 			return TRUE;
-		}
 	}
 	return FALSE;
 }
@@ -286,23 +274,13 @@ bool intemp(Temp_tempList list,Temp_temp temp)
 bool tempequal(Temp_tempList old,Temp_tempList neww)
 {
 	Temp_tempList cur = old;
-	/* Firstly consider empty list */
-	if(!old->head)
-	{
-		if(!neww->head)
-			return TRUE;
-		else 
-			return FALSE;
-	}
-	/* Here, old->head is not NULL */
-	if(!neww->head)
-	{
-		return FALSE;
-	}
+	
 	for(;cur;cur = cur->tail)
 	{
 		if(!intemp(neww,cur->head))
+		{
 			return FALSE;
+		}
 	}
 	cur = neww;
 	for(;cur;cur = cur->tail)
