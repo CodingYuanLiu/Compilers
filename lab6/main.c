@@ -3,6 +3,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include "util.h"
 #include "symbol.h"
 #include "types.h"
@@ -73,13 +74,13 @@ static void doProc(FILE *out, F_frame frame, T_stm body)
 struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
 
 // fprintf(out, "BEGIN function\n");
- AS_printInstrList (out, proc->body,
-                       Temp_layerMap(F_tempMap, ra.coloring));
+ //AS_printInstrList (out, proc->body,
+ //                      Temp_layerMap(F_tempMap, ra.coloring));
  //fprintf(out, "END function\n");
 
  //Part of TA's implementation. Just for reference.
- /*
- AS_rewrite(ra.il, Temp_layerMap(F_tempMap, ra.coloring));
+ 
+ //AS_rewrite(ra.il, Temp_layerMap(F_tempMap, ra.coloring));
  proc =	F_procEntryExit3(frame, ra.il);
 
  string procName = S_name(F_name(frame));
@@ -95,24 +96,34 @@ struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
  AS_printInstrList (out, proc->body,
                        Temp_layerMap(F_tempMap, ra.coloring));
  fprintf(out, "%s", proc->epilog);
- //fprintf(out, "END %s\n\n", Temp_labelstring(F_name(frame)));
- */
+ fprintf(out, "END %s\n\n", Temp_labelstring(F_name(frame)));
+ 
 }
 
 void doStr(FILE *out, Temp_label label, string str) {
 	fprintf(out, ".section .rodata\n");
 	fprintf(out, ".%s:\n", S_name(label));
 
-	int length = *(int *)str;
-	length = length + 4;
-	//it may contains zeros in the middle of string. To keep this work, we need to print all the charactors instead of using fprintf(str)
-	fprintf(out, ".string \"");
-	int i = 0;
-	for (; i < length; i++) {
-		fprintf(out, "%c", str[i]);
-	}
-	fprintf(out, "\"\n");
-
+	fprintf(out, ".int %d\n", strlen(str));
+  fprintf(out, ".string \"");
+  
+  for (; *str != 0; str++) 
+  {
+    if (*str == '\n') 
+    {
+        fprintf(out, "\\n");
+    } 
+    else if (*str == '\t') {
+        fprintf(out, "\\t");
+    } 
+    else 
+    {
+        fprintf(out, "%c", *str);
+    }
+  }
+  
+  fprintf(out, "\"\n");
+  fprintf(out,"\n");
 	//fprintf(out, ".string \"%s\"\n", str);
 }
 

@@ -78,7 +78,7 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 
 	int formal_off = wordsize;// The seventh arg was located at 8(%rbp)
 
-	int num=1; //Marks the sequence of the formals.
+	int num=0; //Marks the sequence of the formals.
 	/*If the formal is escape, then allocate it on the frame.
 	  Else,allocate it on the temp.*/
 	for(;escapes;escapes=escapes->tail,num++)
@@ -88,17 +88,25 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 		{	
 			switch(num)
 			{
-				case 1: 
+				case 0: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num * wordsize)),T_Temp(F_RDI())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RDI())),NULL);
 					newframe->s_offset -= wordsize;
 					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
 					break;
 				}
-				case 2:
+				case 1:
 				{ 
-					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_RSI())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RSI())),NULL);
+					newframe->s_offset -= wordsize;
+					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
+					ftail = ftail->tail; tail = tail->tail;
+					break;
+				}
+				case 2: 
+				{
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RDX())),NULL);
 					newframe->s_offset -= wordsize;
 					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
@@ -106,7 +114,7 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 				}
 				case 3: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_RDX())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RCX())),NULL);
 					newframe->s_offset -= wordsize;
 					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
@@ -114,7 +122,7 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 				}
 				case 4: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_RCX())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_R8())),NULL);
 					newframe->s_offset -= wordsize;
 					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
@@ -122,15 +130,7 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 				}
 				case 5: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_R8())),NULL);
-					newframe->s_offset -= wordsize;
-					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
-					ftail = ftail->tail; tail = tail->tail;
-					break;
-				}
-				case 6: 
-				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Const(-num*wordsize)),T_Temp(F_R9())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_R9())),NULL);
 					newframe->s_offset -= wordsize;
 					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
@@ -149,12 +149,12 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 			temp = Temp_newtemp();
 			switch(num)
 			{
-				case 1: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDI())),NULL);tail = tail->tail;break;
-				case 2: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RSI())),NULL);tail = tail->tail;break;
-				case 3: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDX())),NULL);tail = tail->tail;break;
-				case 4: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RCX())),NULL);tail = tail->tail;break;
-				case 5: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R8())),NULL);tail = tail->tail;break;
-				case 6: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R9())),NULL);tail = tail->tail;break;
+				case 0: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDI())),NULL);tail = tail->tail;break;
+				case 1: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RSI())),NULL);tail = tail->tail;break;
+				case 2: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDX())),NULL);tail = tail->tail;break;
+				case 3: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RCX())),NULL);tail = tail->tail;break;
+				case 4: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R8())),NULL);tail = tail->tail;break;
+				case 5: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R9())),NULL);tail = tail->tail;break;
 				default: printf("Frame: the 7-nth formal should be passed on frame.");
 			}
 			formals = F_AccessList(InReg(temp),formals);
@@ -229,12 +229,12 @@ AS_instrList F_procEntryExit2(AS_instrList body)
 
 AS_proc F_procEntryExit3(F_frame frame,AS_instrList body)
 {
-	char prolog[256];
-	char epilog[256];
-	char fs[20];
-	sprintf(fs,"%s_framesize",frame->name);
-	sprintf(prolog,".set %s,%#x\n subq $%#x,%%rsp\n",fs,-frame->s_offset,-frame->s_offset);//frame->s_offset is expected to be minus.
-	sprintf(epilog,"addq $%#x,%%rsp\n ret\n",-frame->s_offset);
+	char* prolog = checked_malloc(256);
+	char* epilog = checked_malloc(256);
+	char* fs = checked_malloc(20);
+	sprintf(fs,"%s_framesize",Temp_labelstring(frame->name));
+	sprintf(prolog,".set %s,%#x\nsubq $%#x,%rsp\n",fs,-frame->s_offset,-frame->s_offset+8);//frame->s_offset is expected to be minus.
+	sprintf(epilog,"addq $%#x,%rsp\nret\n",-frame->s_offset+8);
 	return AS_Proc(prolog,body,epilog);
 }
 

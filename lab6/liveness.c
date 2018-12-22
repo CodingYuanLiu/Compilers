@@ -60,6 +60,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 	
 	bool fixed_point = FALSE;
 	while(!fixed_point){
+		fixed_point = TRUE;
 		flownodes = G_nodes(flow);
 		for(;flownodes;flownodes = flownodes->tail)
 		{
@@ -81,9 +82,9 @@ struct Live_graph Live_liveness(G_graph flow) {
 			in_n = UnionSets(FG_use(flownode),
 						SubSets(out_n,FG_def(flownode)));
 
-			if(tempequal(in_n_old,in_n) && tempequal(out_n_old,out_n))
+			if(!tempequal(in_n_old,in_n) || !tempequal(out_n_old,out_n))
 			{
-				fixed_point = TRUE;
+				fixed_point = FALSE;
 			}
 			/* Update in_n and out_n*/
 			*(Temp_tempList *)G_look(in,flownode) = in_n;
@@ -131,7 +132,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 	for(;flownodes;flownodes = flownodes->tail)
 	{
 		flownode = flownodes -> head;
-		Temp_tempList outn = (Temp_tempList)G_look(out,flownode),
+		Temp_tempList outn = *(Temp_tempList *)G_look(out,flownode),
 		def = FG_def(flownode);
 		if(!(def && def->head))
 		{
@@ -140,7 +141,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 		Temp_tempList temps = UnionSets(outn,def);
 		for(;temps;temps = temps->tail)
 		{
-			if(temps->head = F_SP())
+			if(temps->head == F_SP())
 			{
 				continue;
 			}
@@ -158,7 +159,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 	for(;flownodes;flownodes = flownodes->tail)
 	{
 		flownode = flownodes->head;
-		Temp_tempList outn = (Temp_tempList)G_look(out,flownode),
+		Temp_tempList outn = *(Temp_tempList *)G_look(out,flownode),
 		def = FG_def(flownode);
 		if(!(def && def->head))
 		{
@@ -175,7 +176,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 				{
 					continue;
 				}
-				G_node defnode = TAB_look(tempTab,def->head);
+				G_node defnode = TAB_look(tempTab,def->head);				
 				for(;outn;outn = outn->tail)
 				{
 					if(outn->head == F_SP())

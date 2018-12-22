@@ -132,6 +132,12 @@ void AS_print(FILE *out, AS_instr i, Temp_map m)
     /* i->u.LABEL->label); */
     break;
   case I_MOVE: {
+    if (i->u.MOVE.dst && i->u.MOVE.src) 
+    {
+      if (strcmp(Temp_look(m, i->u.MOVE.dst->head), Temp_look(m, i->u.MOVE.src->head)) == 0) {
+        break;
+    }
+  }
 	if ((i->u.MOVE.dst == NULL) && (i->u.MOVE.src == NULL)) {
 		char *src = strchr(i->u.MOVE.assem, '%');
 		if (src != NULL) {

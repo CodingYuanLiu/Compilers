@@ -90,7 +90,7 @@ static char fs[256];
 AS_instrList F_codegen(F_frame f, T_stmList stmList) {
     AS_instrList list;
     T_stmList s;
-    emit(AS_Label(Temp_labelstring(f->name),f->name));
+    //emit(AS_Label(Temp_labelstring(f->name),f->name));
     savecalleeregs();
     
     sprintf(fs,"%s_framesize",S_name(f->name));
@@ -157,7 +157,7 @@ static void munchStm(T_stm s)
             if(dst->kind == T_MEM)
             {
                 Temp_temp left = munchExp(src);
-                Temp_temp right = munchExp(dst);
+                Temp_temp right = munchExp(dst->u.MEM);
                 //temps are both live here.
                 emit(AS_Oper("movq `s0,(`s1)",NULL,L(left, L(right,NULL)),AS_Targets(NULL)));
                 return;
@@ -245,7 +245,7 @@ static Temp_temp munchExp(T_exp e)
                     //addrel(AS_Rel(&inst,offset));
                     //emit(inst);
                     
-                    sprintf(instr,"movq (%s+%d)(`s0),`d0",fs,offset);
+                    sprintf(instr,"movq (%s-%#x)(`s0),`d0",fs,-offset);
                     emit(AS_Oper(instr,L(r,NULL),L(F_SP(),NULL),AS_Targets(NULL)));
                     return r;
                 }

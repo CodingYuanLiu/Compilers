@@ -70,7 +70,7 @@ G_graph FG_AssemFlowGraph(AS_instrList il, F_frame f)
 
 		/* If the current instruction is jmp xxx, then do not addedge between current instruction
 		and the next instruction, because after jmp xxx, the next instruction will not be executed. */
-		if(instr->kind == I_OPER && strncmp("jmp",instr->u.OPER.assem,3))
+		if(instr->kind == I_OPER && strncmp("jmp",instr->u.OPER.assem,3) == 0)
 		{
 			prev = NULL;
 			continue;

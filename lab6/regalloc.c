@@ -128,19 +128,19 @@ static void Build()
 		Temp_temp temp = Live_gtemp(nodes->head);
 		if(temp == F_RAX())				*color = 1;
 		else if(temp == F_RBX())		*color = 2;
-		else if (temp = F_RCX())  		*color = 3;
-		else if (temp = F_RDX())  		*color = 4;
-		else if (temp = F_RSI())  		*color = 5;
-		else if (temp = F_RDI())  		*color = 6;
-		else if (temp = F_RBP())		*color = 7;
-		else if (temp = F_R8())   		*color = 8;
-		else if (temp = F_R9())   		*color = 9;
-		else if (temp = F_R10())  		*color = 10;
-		else if (temp = F_R11())  		*color = 11;
-		else if (temp = F_R12())  		*color = 12;
-		else if (temp = F_R13())  		*color = 13;
-		else if (temp = F_R14())  		*color = 14;
-		else if (temp = F_R15()) 		*color = 15;
+		else if (temp == F_RCX())  		*color = 3;
+		else if (temp == F_RDX())  		*color = 4;
+		else if (temp == F_RSI())  		*color = 5;
+		else if (temp == F_RDI())  		*color = 6;
+		else if (temp == F_RBP())		*color = 7;
+		else if (temp == F_R8())   		*color = 8;
+		else if (temp == F_R9())   		*color = 9;
+		else if (temp == F_R10())  		*color = 10;
+		else if (temp == F_R11())  		*color = 11;
+		else if (temp == F_R12())  		*color = 12;
+		else if (temp == F_R13())  		*color = 13;
+		else if (temp == F_R14())  		*color = 14;
+		else if (temp == F_R15()) 		*color = 15;
 		else 							*color = 0; //Temp register
 		G_enter(colorTab,nodes->head,color);
 		
@@ -250,7 +250,7 @@ static void DecrementDegree(G_node n)
 	int d = *degree;// Optimization
 	*degree = *degree - 1;
 	int* color = G_look(colorTab,n);
-	if(d == K && *color != 0)
+	if(d == K && *color == 0)
 	{
 		//If n and its adjacent nodes are in activeMoves,
 		EnableMoves(G_NodeList(n,Adjacent(n)));
@@ -491,14 +491,13 @@ static void AssignColors()
 	while(selectStack)
 	{
 		okColors[0] = FALSE;
-		for(int i=1;i<K;i++)
+		for(int i=1;i<K+1;i++)
 		{
 			okColors[i] = TRUE;
 		}
 
 		G_node n = selectStack->head;
 		selectStack = selectStack->tail;
-
 		for(G_nodeList succs = G_succ(n);succs;succs = succs->tail)
 		{
 			int *color = G_look(colorTab,GetAlias(succs->head));
@@ -540,7 +539,7 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 	new_instr; //new_instruction after spilling.
 	int off;
 	char* fs = checked_malloc(MAXLEN);
-	sprintf(fs,"%s_framesize",f->name);
+	sprintf(fs,"%s_framesize",Temp_labelstring(f->name));
 	while(spilledNodes)
 	{
 		G_node cur = spilledNodes->head;
@@ -556,8 +555,8 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 			Temp_tempList *def,*use;
 			if(instr->head->kind == I_MOVE)
 			{
-				*def = instr->head->u.MOVE.dst;
-				*use = instr->head->u.MOVE.src;
+				def = &instr->head->u.MOVE.dst;
+				use = &instr->head->u.MOVE.src;
 			}
 			else if(instr->head->kind == I_LABEL)
 			{
@@ -566,8 +565,8 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 			}
 			else if(instr->head->kind == I_OPER)
 			{
-				*def = instr->head->u.OPER.dst;
-				*use = instr->head->u.OPER.src;
+				def = &instr->head->u.OPER.dst;
+				use = &instr->head->u.OPER.src;
 			}
 
 			if(use && intemp(*use,spilledtemp))
@@ -578,7 +577,7 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 				//Replace spilledtemp by t.
 				*use = replaceTempList(*use,spilledtemp,t);
 				char *assem = checked_malloc(MAXLEN);
-				sprintf(assem,"movq (%s+%d)(%%rsp),`d0\n",fs,off);
+				sprintf(assem,"#Spill load\nmovq (%s-%#x)(%rsp),`d0\n",fs,-off);
 				//Add the new instruction betfore the old one.
 				new_instr = AS_InstrList(AS_Oper(assem,Temp_TempList(t,NULL),NULL,AS_Targets(NULL)),instr);
 
@@ -603,7 +602,7 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 				}
 				*def = replaceTempList(*def,spilledtemp,t);
 				char *assem = checked_malloc(MAXLEN);
-				sprintf(assem,"movq `s0,(%s+%d)(%%rsp)\n",off);
+				sprintf(assem,"#Spill store\nmovq `s0,(%s-%#x)(%rsp)\n",fs,-off);
 				//Add the instruction after the old one.
 				instr->tail = AS_InstrList(AS_Oper(assem,NULL,Temp_TempList(t,NULL),AS_Targets(NULL)),next);
 				last = instr->tail;
@@ -638,7 +637,7 @@ static Temp_map AssignRegisters(struct Live_graph g)
 	Temp_map res = Temp_empty();
 	G_nodeList nodes = G_nodes(g.graph);
 
-	Temp_enter(res,F_SP(),"%%rsp");
+	Temp_enter(res,F_SP(),"%rsp");
 	for(;nodes;nodes = nodes->tail)
 	{
 		int *color = G_look(colorTab,nodes->head);
