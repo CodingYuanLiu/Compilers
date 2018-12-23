@@ -380,7 +380,7 @@ T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size)
 		{
 			return 
 			T_Seq(
-				T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
+				T_Move(T_Mem(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize))),Tr_unEx(fields->head)),
 				Tr_mk_record_array(fields->tail,r,offset+1,size)
 			);
 		}
@@ -388,13 +388,13 @@ T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size)
 		{
 			return
 			T_Seq(
-				T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head)),
-				T_Move(T_Binop(T_plus,T_Temp(r),T_Const((offset+1)*wordsize)),Tr_unEx(fields->tail->head))
+				T_Move(T_Mem(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize))),Tr_unEx(fields->head)),
+				T_Move(T_Mem(T_Binop(T_plus,T_Temp(r),T_Const((offset+1)*wordsize))),Tr_unEx(fields->tail->head))
 			);
 		}
 	}
 	else{
-		return T_Move(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize)),Tr_unEx(fields->head));
+		return T_Move(T_Mem(T_Binop(T_plus,T_Temp(r),T_Const(offset*wordsize))),Tr_unEx(fields->head));
 	}
 }
 

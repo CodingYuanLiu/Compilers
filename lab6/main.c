@@ -102,7 +102,7 @@ struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
 
 void doStr(FILE *out, Temp_label label, string str) {
 	fprintf(out, ".section .rodata\n");
-	fprintf(out, ".%s:\n", S_name(label));
+	fprintf(out, "%s:\n", S_name(label));
 
 	fprintf(out, ".int %d\n", strlen(str));
   fprintf(out, ".string \"");

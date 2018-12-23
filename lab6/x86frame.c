@@ -223,7 +223,7 @@ AS_instrList F_procEntryExit2(AS_instrList body)
 {
 	static Temp_tempList returnSink = NULL;
 	if(!returnSink)
-		returnSink = Temp_TempList(rsp,NULL);
+		returnSink = Temp_TempList(rsp,Temp_TempList(F_RAX(),NULL));
 	return AS_splice(body,AS_InstrList(AS_Oper("",NULL,returnSink,AS_Targets(NULL)),NULL));
 }
 
@@ -234,7 +234,7 @@ AS_proc F_procEntryExit3(F_frame frame,AS_instrList body)
 	char* fs = checked_malloc(20);
 	sprintf(fs,"%s_framesize",Temp_labelstring(frame->name));
 	sprintf(prolog,".set %s,%#x\nsubq $%#x,%rsp\n",fs,-frame->s_offset,-frame->s_offset);//frame->s_offset is expected to be minus.
-	sprintf(epilog,"addq $%#x,%rsp\nret\n",-frame->s_offset);
+	sprintf(epilog,"addq $%#x,%rsp\nret\n\n",-frame->s_offset);
 	return AS_Proc(prolog,body,epilog);
 }
 

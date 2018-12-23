@@ -126,17 +126,17 @@ static void Build()
 		/* Initial color */
 		int *color = checked_malloc(sizeof(int));
 		Temp_temp temp = Live_gtemp(nodes->head);
-		if(temp == F_RAX())				*color = 1;
+		if(temp == F_R10())				*color = 1;
 		else if(temp == F_RBX())		*color = 2;
 		else if (temp == F_RCX())  		*color = 3;
-		else if (temp == F_RDX())  		*color = 4;
+		else if (temp == F_R11())  		*color = 4;
 		else if (temp == F_RSI())  		*color = 5;
 		else if (temp == F_RDI())  		*color = 6;
-		else if (temp == F_RBP())		*color = 7;
+		else if (temp == F_RAX())		*color = 7;
 		else if (temp == F_R8())   		*color = 8;
 		else if (temp == F_R9())   		*color = 9;
-		else if (temp == F_R10())  		*color = 10;
-		else if (temp == F_R11())  		*color = 11;
+		else if (temp == F_RBP())  		*color = 10;
+		else if (temp == F_RDX())  		*color = 11;
 		else if (temp == F_R12())  		*color = 12;
 		else if (temp == F_R13())  		*color = 13;
 		else if (temp == F_R14())  		*color = 14;
