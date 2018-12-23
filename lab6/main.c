@@ -96,7 +96,7 @@ struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
  AS_printInstrList (out, proc->body,
                        Temp_layerMap(F_tempMap, ra.coloring));
  fprintf(out, "%s", proc->epilog);
- fprintf(out, "END %s\n\n", Temp_labelstring(F_name(frame)));
+ //fprintf(out, "END %s\n\n", Temp_labelstring(F_name(frame)));
  
 }
 

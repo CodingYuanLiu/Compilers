@@ -159,7 +159,7 @@ static struct Cx Tr_unCx(Tr_exp e)
 		case Tr_ex:
 		{
 			struct Cx uncx;
-			uncx.stm = T_Cjump(T_ne,e->u.ex,0,NULL,NULL);
+			uncx.stm = T_Cjump(T_ne,e->u.ex,T_Const(0),NULL,NULL);
 			uncx.trues = PatchList(&(uncx.stm->u.CJUMP.true),NULL);
 			uncx.falses = PatchList(&(uncx.stm->u.CJUMP.false),NULL );
 			return uncx;
@@ -274,8 +274,17 @@ Tr_exp Tr_Call(Temp_label label,Tr_expList args,Tr_level caller,Tr_level callee)
 	}
 	//debug in 12.8
 	targs = targs->tail;
-	targs = T_ExpList(staticlink,targs);
-	return Tr_Ex(T_Call(T_Name(label),targs));
+
+	//Not externalCall
+	if(callee->parent)
+	{
+		targs = T_ExpList(staticlink,targs);
+		return Tr_Ex(T_Call(T_Name(label),targs));
+	}
+	else
+	{
+		return Tr_Ex(F_externalCall(Temp_labelstring(label),targs));
+	}
 }
 
 Tr_exp Tr_Calculate(A_oper op,Tr_exp left,Tr_exp right)

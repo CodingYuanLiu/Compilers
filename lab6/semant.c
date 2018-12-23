@@ -377,12 +377,13 @@ struct expty transIfexp(S_table venv,S_table tenv,A_exp a,Tr_level l,Temp_label 
 			EM_error(a->pos,"then exp and else exp type mismatch");
 		}
 		tr_if = Tr_If(test.exp,then.exp,elsee.exp);
+		return expTy(tr_if,actual_ty(then.ty));
 	}
 	else if(then.ty->kind != Ty_void)// Then expression must be void without else.
 	{
 		EM_error(a->pos,"if-then exp's body must produce no value");
-		tr_if = Tr_If(test.exp,then.exp,NULL);
 	}
+	tr_if = Tr_If(test.exp,then.exp,NULL);
 	return expTy(tr_if,actual_ty(then.ty));
 }
 
@@ -699,6 +700,7 @@ Tr_exp transFunctionDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label 
 
 		/*Get the access of the formal from funentry*/
 		Tr_accessList accesslist = Tr_get_formal_access(funentry->u.fun.level);
+		accesslist = accesslist->tail; // accesslist->head is the staticlink.
 		for(l=f->params,t=formalTys;l;l=l->tail,t=t->tail)
 		{
 			S_enter(venv,l->head->name,E_VarEntry(accesslist->head,t->head));

@@ -199,7 +199,7 @@ static void munchStm(T_stm s)
                 case T_le: op = String("jle");break;
                 case T_ge: op = String("jge");break;
             }
-            emit(AS_Oper("cmp `s0,`s1",NULL,L(left,L(right,NULL)),AS_Targets(NULL)));
+            emit(AS_Oper("cmp `s0,`s1",NULL,L(right,L(left,NULL)),AS_Targets(NULL)));
             sprintf(cjmp,"%s %s",op,Temp_labelstring(s->u.CJUMP.true));
             emit(AS_Oper(cjmp,NULL,NULL,AS_Targets(Temp_LabelList(s->u.CJUMP.true,NULL))));
             return;

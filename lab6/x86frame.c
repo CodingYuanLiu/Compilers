@@ -71,7 +71,7 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 	T_stmList view_shift = T_StmList(NULL,NULL);
 	T_stmList tail = view_shift;
 	
-	newframe->s_offset = 0;
+	newframe->s_offset = -8;
 	
 	bool escape;
 	Temp_temp temp;
@@ -90,49 +90,49 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 			{
 				case 0: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RDI())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(newframe->s_offset))),T_Temp(F_RDI())),NULL);
+					ftail->tail = F_AccessList(InFrame(newframe->s_offset),NULL);
 					newframe->s_offset -= wordsize;
-					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
 					break;
 				}
 				case 1:
 				{ 
-					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RSI())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(newframe->s_offset))),T_Temp(F_RSI())),NULL);
+					ftail->tail = F_AccessList(InFrame(newframe->s_offset),NULL);
 					newframe->s_offset -= wordsize;
-					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
 					break;
 				}
 				case 2: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RDX())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(newframe->s_offset))),T_Temp(F_RDX())),NULL);
+					ftail->tail = F_AccessList(InFrame(newframe->s_offset),NULL);
 					newframe->s_offset -= wordsize;
-					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
 					break;
 				}
 				case 3: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_RCX())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(newframe->s_offset))),T_Temp(F_RCX())),NULL);
+					ftail->tail = F_AccessList(InFrame(newframe->s_offset),NULL);
 					newframe->s_offset -= wordsize;
-					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
 					break;
 				}
 				case 4: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_R8())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(newframe->s_offset))),T_Temp(F_R8())),NULL);
+					ftail->tail = F_AccessList(InFrame(newframe->s_offset),NULL);
 					newframe->s_offset -= wordsize;
-					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
 					break;
 				}
 				case 5: 
 				{
-					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(-num*wordsize))),T_Temp(F_R9())),NULL);
+					tail->tail = T_StmList(T_Move(T_Mem(T_Binop(T_plus,T_Temp(F_FP()),T_Const(newframe->s_offset))),T_Temp(F_R9())),NULL);
+					ftail->tail = F_AccessList(InFrame(newframe->s_offset),NULL);
 					newframe->s_offset -= wordsize;
-					ftail->tail = F_AccessList(InFrame(-num * wordsize),NULL);
 					ftail = ftail->tail; tail = tail->tail;
 					break;
 				}
@@ -233,8 +233,8 @@ AS_proc F_procEntryExit3(F_frame frame,AS_instrList body)
 	char* epilog = checked_malloc(256);
 	char* fs = checked_malloc(20);
 	sprintf(fs,"%s_framesize",Temp_labelstring(frame->name));
-	sprintf(prolog,".set %s,%#x\nsubq $%#x,%rsp\n",fs,-frame->s_offset,-frame->s_offset+8);//frame->s_offset is expected to be minus.
-	sprintf(epilog,"addq $%#x,%rsp\nret\n",-frame->s_offset+8);
+	sprintf(prolog,".set %s,%#x\nsubq $%#x,%rsp\n",fs,-frame->s_offset,-frame->s_offset);//frame->s_offset is expected to be minus.
+	sprintf(epilog,"addq $%#x,%rsp\nret\n",-frame->s_offset);
 	return AS_Proc(prolog,body,epilog);
 }
 
