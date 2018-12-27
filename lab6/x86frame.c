@@ -170,10 +170,15 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 
 F_frag F_StringFrag(Temp_label label, string str) 
 {   
+	int len = strlen(str);  // NOTE: assume no '\0'
+    char *new_str = checked_malloc(len + 5);
+    *(int *) new_str = len;
+    strncpy(new_str + 4, str, len);
+
 	F_frag strfrag = checked_malloc(sizeof(*strfrag));
 	strfrag->kind = F_stringFrag;
 	strfrag->u.stringg.label=label;
-	strfrag->u.stringg.str=str;
+	strfrag->u.stringg.str=new_str;
 	return strfrag;                                      
 }                                                     
                                                       

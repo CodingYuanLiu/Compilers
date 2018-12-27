@@ -320,7 +320,7 @@ static Temp_temp munchExp(T_exp e)
                 char *inst = checked_malloc(MAXLEN);
                 temp = Temp_newtemp();
                 sprintf(inst,"leaq %s(`s0),`d0",fs);
-                emit(AS_Move(inst,L(temp,NULL),L(F_SP(),NULL)));
+                emit(AS_Oper(inst,L(temp,NULL),L(F_SP(),NULL),AS_Targets(NULL)));
             }
             return temp;
         }
@@ -330,14 +330,14 @@ static Temp_temp munchExp(T_exp e)
         {
             string inst = checked_malloc(MAXLEN);
             sprintf(inst,"movq $%s,`d0",Temp_labelstring(e->u.NAME));
-            emit(AS_Move(inst,L(r,NULL),NULL));
+            emit(AS_Oper(inst,L(r,NULL),NULL,AS_Targets(NULL)));
             return r;
         }
         case T_CONST:
         {
             string inst = checked_malloc(MAXLEN);
             sprintf(inst,"movq $%d,`d0",e->u.CONST);
-            emit(AS_Move(inst,L(r,NULL),NULL));
+            emit(AS_Oper(inst,L(r,NULL),NULL,AS_Targets(NULL)));
             return r;
         }
         case T_CALL:

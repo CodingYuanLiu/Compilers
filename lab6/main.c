@@ -56,21 +56,22 @@ static void doProc(FILE *out, F_frame frame, T_stm body)
  //printf("-------====Linearlized=====-----\n");
 
  blo = C_basicBlocks(stmList);
- //C_stmListList stmLists = blo.stmLists;
- /*
- for (; stmLists; stmLists = stmLists->tail) {
- 	printStmList(stdout, stmLists->head);
-	printf("------====Basic block=====-------\n");
- }*/
+// C_stmListList stmLists = blo.stmLists;
+ 
+ //for (; stmLists; stmLists = stmLists->tail) {
+ 	//printStmList(stdout, stmLists->head);
+	//printf("------====Basic block=====-------\n");
+ //}
 
  stmList = C_traceSchedule(blo);
  //printStmList(stdout, stmList);
- //printf("-------====trace=====-----\n");
+// printf("-------====trace=====-----\n");
  iList  = F_codegen(frame, stmList); /* 9 */
 
  AS_printInstrList(stdout, iList, Temp_layerMap(F_tempMap, Temp_name()));
  printf("----======before RA=======-----\n");
-
+	G_graph fg = FG_AssemFlowGraph(iList,frame);
+  G_show(out,G_nodes(fg));
 struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
 
 // fprintf(out, "BEGIN function\n");
@@ -101,13 +102,23 @@ struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
 }
 
 void doStr(FILE *out, Temp_label label, string str) {
-	fprintf(out, ".section .rodata\n");
-	fprintf(out, "%s:\n", S_name(label));
-
-	fprintf(out, ".int %d\n", strlen(str));
+  /*
+  fprintf(out,".globl %s\n",S_name(label));
+	fprintf(out, ".data\n");
+  fprintf(out,".align 8\n");
+  fprintf(out,".type %s, @object\n",S_name(label));
+	fprintf(out, ".size %s, %d\n", S_name(label),1+strlen(str));
+	fprintf(out, "%s:\n.string \"", S_name(label));
+  */
+  //fprintf(out,"	.section	.data.rel.local\n");
+  //fprintf(out, ".string \"");
+  fprintf(out, ".section .rodata\n");
+  fprintf(out, "%s:\n", Temp_labelstring(label));
+  //fprintf(out, ".int %d\n", strlen(str));
   fprintf(out, ".string \"");
-  
-  for (; *str != 0; str++) 
+  int len = *(int *)str;
+  int i = 0;
+  for(; i<len+4; i++,str++) 
   {
     if (*str == '\n') 
     {
@@ -123,7 +134,7 @@ void doStr(FILE *out, Temp_label label, string str) {
   }
   
   fprintf(out, "\"\n");
-  fprintf(out,"\n");
+  //fprintf(out,"\n");
 	//fprintf(out, ".string \"%s\"\n", str);
 }
 

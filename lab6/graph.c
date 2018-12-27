@@ -97,20 +97,68 @@ void G_rmEdge(G_node from, G_node to) {
  /**
   * Print a human-readable dump for debugging.
   */
-void G_show(FILE *out, G_nodeList p, void showInfo(void *)) {
-  for (; p!=NULL; p=p->tail) {
+void G_show(FILE *out, G_nodeList p) {
+  for (; p!=NULL; p=p->tail) 
+  {
     G_node n = p->head;
     G_nodeList q;
     assert(n);
+    /*
     if (showInfo) 
       showInfo(n->info);
+    */
     fprintf(out, " (%d): ", n->mykey); 
     for(q=G_succ(n); q!=NULL; q=q->tail) 
-           fprintf(out, "%d ", q->head->mykey);
+         fprintf(out, "%d ", q->head->mykey);
+    fprintf(out,"\n");
+
+    AS_instr inst = (AS_instr)G_nodeInfo(n);
+    char *defuse;
+    sprintf(defuse,"defuse: ");
+    //char *flownode = checked_malloc(256);
+    switch(inst->kind)
+    {
+      case I_LABEL:
+        fprintf(out,"assem:%s,label:%s\n",inst->u.LABEL.assem,S_name(inst->u.LABEL.label));break;
+      case I_OPER:
+        defuse = checked_malloc(256);
+        for(Temp_tempList use = inst->u.OPER.src;use;use = use->tail)
+        {
+          sprintf(defuse,"use:%d ",*(int *)(use->head));
+        }
+        for(Temp_tempList def = inst->u.OPER.dst;def;def = def->tail)
+        {
+          sprintf(defuse,"def:%d ",*(int *)(def->head));
+        }
+      
+        fprintf(out,"operassem:%s,%s\n",inst->u.OPER.assem,defuse);
+        
+        //fprintf(out,"operassem:%s\n",inst->u.OPER.assem);
+        break;
+      case I_MOVE:
+        defuse = checked_malloc(256);
+        for(Temp_tempList use = inst->u.MOVE.src;use;use = use->tail)
+        {
+          sprintf(defuse,"%s,use:%d ",defuse,*(int *)(use->head));
+        }
+        for(Temp_tempList def = inst->u.MOVE.dst;def;def = def->tail)
+        {
+          sprintf(defuse,"%s,def:%d ",defuse,*(int *)(def->head));
+        }
+      
+        fprintf(out,"moveassem:%s,%s\n",inst->u.MOVE.assem,defuse);
+        break;
+    }
+
     fprintf(out, "\n");
   }
 }
-
+/*
+void showInfo(void *info)
+{
+  
+}
+*/
 G_nodeList G_succ(G_node n) { assert(n); return n->succs; }
 
 G_nodeList G_pred(G_node n) { assert(n); return n->preds; }
