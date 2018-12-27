@@ -14,6 +14,7 @@
 #include "graph.h"
 #include "errormsg.h"
 #include "table.h"
+#include "flowgraph.h"
 
 struct G_graph_ {int nodecount;
 		 G_nodeList mynodes, mylast;
@@ -97,6 +98,7 @@ void G_rmEdge(G_node from, G_node to) {
  /**
   * Print a human-readable dump for debugging.
   */
+
 void G_show(FILE *out, G_nodeList p) {
   for (; p!=NULL; p=p->tail) 
   {
@@ -107,15 +109,24 @@ void G_show(FILE *out, G_nodeList p) {
     if (showInfo) 
       showInfo(n->info);
     */
-    fprintf(out, " (%d): ", n->mykey); 
+    fprintf(out, " (%d:%d): ", n->mykey,*(int *)G_nodeInfo(n)); 
     for(q=G_succ(n); q!=NULL; q=q->tail) 
-         fprintf(out, "%d ", q->head->mykey);
+         fprintf(out, "%d:%d ", q->head->mykey,*(int *)G_nodeInfo(q->head));
     fprintf(out,"\n");
+    
+    
 
+
+
+
+    //Flowgraph debugging
+    /*
     AS_instr inst = (AS_instr)G_nodeInfo(n);
     char *defuse;
     sprintf(defuse,"defuse: ");
     //char *flownode = checked_malloc(256);
+    Temp_tempList seedef = FG_def(n);
+    Temp_tempList seeuse = FG_use(n);
     switch(inst->kind)
     {
       case I_LABEL:
@@ -149,7 +160,8 @@ void G_show(FILE *out, G_nodeList p) {
         fprintf(out,"moveassem:%s,%s\n",inst->u.MOVE.assem,defuse);
         break;
     }
-
+    */
+    
     fprintf(out, "\n");
   }
 }

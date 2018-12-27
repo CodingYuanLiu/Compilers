@@ -92,6 +92,44 @@ struct Live_graph Live_liveness(G_graph flow) {
 			
 		}
 	}
+	//Debugging: show the livemap.
+	/*
+	flownodes = G_nodes(flow);
+	printf("======================Start Livemap=======================\n");
+	Temp_tempList showout;
+	Temp_tempList showin;
+	for(;flownodes;flownodes = flownodes->tail)
+	{
+		AS_instr inst = G_nodeInfo(flownodes->head);
+		printf("assem:%s\n",inst->u.MOVE.assem);
+		showout = *(Temp_tempList *)G_look(out,flownodes->head);	
+		showin = *(Temp_tempList *)G_look(in,flownodes->head);
+		printf("out: ");
+		for(;showout;showout = showout->tail)
+		{
+			printf("%d ",*(int *)(showout->head));
+		}	
+		printf("\nin:");
+		for(;showin;showin = showin->tail)
+		{
+			printf("%d ",*(int *)(showin->head));
+		}
+		printf("\ndef:");
+		for(Temp_tempList showdef = FG_def(flownodes->head);showdef;showdef = showdef->tail)
+		{
+			printf("%d ",*(int *)(showdef->head));
+		}
+		printf("\nuse:");
+		for(Temp_tempList showuse = FG_use(flownodes->head);showuse;showuse = showuse->tail)
+		{
+			printf("%d ",*(int *)(showuse->head));
+		}
+
+		printf("\nendnode\n\n");
+	}
+	printf("======================End Livemap=======================\n");
+
+	*/
 
 	/* Then use the result of the livemap to construct interfere graph */
 	/* Construct the graph */
@@ -255,7 +293,7 @@ Temp_tempList SubSets(Temp_tempList left, Temp_tempList right)
 	{
 		if(!intemp(right,left->head))
 		{
-			sub = Temp_TempList(left->head,right);
+			sub = Temp_TempList(left->head,sub);
 		}
 		
 	}
