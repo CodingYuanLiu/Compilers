@@ -96,16 +96,20 @@ struct Live_graph Live_liveness(G_graph flow) {
 	/*
 	flownodes = G_nodes(flow);
 	printf("======================Start Livemap=======================\n");
-	Temp_tempList showout;
+	Temp_tempList showout,showwout;
 	Temp_tempList showin;
 	for(;flownodes;flownodes = flownodes->tail)
 	{
 		AS_instr inst = G_nodeInfo(flownodes->head);
 		printf("assem:%s\n",inst->u.MOVE.assem);
-		showout = *(Temp_tempList *)G_look(out,flownodes->head);	
+		showwout = *(Temp_tempList *)G_look(out,flownodes->head);	
+		if(flownodes->head->mykey == 14)
+		{
+			int see = 0;
+		}
 		showin = *(Temp_tempList *)G_look(in,flownodes->head);
 		printf("out: ");
-		for(;showout;showout = showout->tail)
+		for(showout = showwout;showout;showout = showout->tail)
 		{
 			printf("%d ",*(int *)(showout->head));
 		}	
@@ -128,8 +132,8 @@ struct Live_graph Live_liveness(G_graph flow) {
 		printf("\nendnode\n\n");
 	}
 	printf("======================End Livemap=======================\n");
-
 	*/
+	
 
 	/* Then use the result of the livemap to construct interfere graph */
 	/* Construct the graph */
@@ -197,7 +201,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 	for(;flownodes;flownodes = flownodes->tail)
 	{
 		flownode = flownodes->head;
-		Temp_tempList outn = *(Temp_tempList *)G_look(out,flownode),
+		Temp_tempList outn,
 		def = FG_def(flownode);
 		if(!(def && def->head))
 		{
@@ -214,7 +218,9 @@ struct Live_graph Live_liveness(G_graph flow) {
 				{
 					continue;
 				}
-				G_node defnode = TAB_look(tempTab,def->head);				
+				G_node defnode = TAB_look(tempTab,def->head);		
+					
+				outn = *(Temp_tempList *)G_look(out,flownode);
 				for(;outn;outn = outn->tail)
 				{
 					if(outn->head == F_SP())
@@ -227,6 +233,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 					{
 						G_addEdge(defnode,outnode);
 						G_addEdge(outnode,defnode);
+						
 					}
 				}
 			}
@@ -241,7 +248,7 @@ struct Live_graph Live_liveness(G_graph flow) {
 					continue;
 				}
 				G_node defnode = TAB_look(tempTab,def->head);
-				for(;outn;outn = outn->tail)
+				for(outn = *(Temp_tempList *)G_look(out,flownode);outn;outn = outn->tail)
 				{
 					if(outn->head == F_SP())
 					{

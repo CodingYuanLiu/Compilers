@@ -273,10 +273,19 @@ static Temp_temp munchExp(T_exp e)
                 //Templist may be useful for register allocation.Here may lost some of them.
                 case T_plus:
                 {
-                    Temp_temp left = munchExp(e->u.BINOP.left);
-                    Temp_temp right = munchExp(e->u.BINOP.right);
-                    emit(AS_Move("movq `s0, `d0", L(r, NULL), L(left, NULL)));
-			        emit(AS_Oper("addq `s0, `d0", L(r, NULL), L(right, L(r,NULL)), AS_Targets(NULL)));
+                    if(e->u.BINOP.left->kind == T_TEMP && e->u.BINOP.left->u.TEMP == F_FP() && e->u.BINOP.right->kind == T_CONST)
+                    {
+                        char* assem = checked_malloc(MAXLEN);
+                        sprintf(assem,"leaq (%s-%#x)(`s0),`d0",fs,-e->u.BINOP.right->u.CONST);
+                        emit(AS_Oper(assem,L(r,NULL),L(F_SP(),NULL),AS_Targets(NULL)));
+                    }
+
+                    else{
+                        Temp_temp left = munchExp(e->u.BINOP.left);
+                        Temp_temp right = munchExp(e->u.BINOP.right);
+                        emit(AS_Move("movq `s0, `d0", L(r, NULL), L(left, NULL)));
+			            emit(AS_Oper("addq `s0, `d0", L(r, NULL), L(right, L(r,NULL)), AS_Targets(NULL)));
+                    }
                     return r;
                 }
                 case T_minus:
@@ -294,7 +303,7 @@ static Temp_temp munchExp(T_exp e)
                     Temp_temp right = munchExp(e->u.BINOP.right);
                     emit(AS_Move("movq `s0, `d0", Temp_TempList(r, NULL), Temp_TempList(left, NULL)));
                     emit(AS_Oper("imulq `s0,`d0",L(r,NULL),L(right, L(r,NULL)),AS_Targets(NULL)));
-                    emit(AS_Move("movq `s0, `d0", Temp_TempList(r, NULL), Temp_TempList(F_RAX(), NULL)));
+                    //emit(AS_Move("movq `s0, `d0", Temp_TempList(r, NULL), Temp_TempList(F_RAX(), NULL)));
                     return r;
                 }
                 case T_div:

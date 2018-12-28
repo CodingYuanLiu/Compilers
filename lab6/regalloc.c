@@ -129,14 +129,14 @@ static void Build()
 		if(temp == F_R10())				*color = 1;
 		else if(temp == F_RBX())		*color = 2;
 		else if (temp == F_RCX())  		*color = 3;
-		else if (temp == F_R11())  		*color = 4;
+		else if (temp == F_RDX())  		*color = 4;
 		else if (temp == F_RSI())  		*color = 5;
 		else if (temp == F_RDI())  		*color = 6;
 		else if (temp == F_RAX())		*color = 7;
 		else if (temp == F_R8())   		*color = 8;
 		else if (temp == F_R9())   		*color = 9;
 		else if (temp == F_RBP())  		*color = 10;
-		else if (temp == F_RDX())  		*color = 11;
+		else if (temp == F_R11())  		*color = 11;
 		else if (temp == F_R12())  		*color = 12;
 		else if (temp == F_R13())  		*color = 13;
 		else if (temp == F_R14())  		*color = 14;
@@ -498,6 +498,26 @@ static void AssignColors()
 
 		G_node n = selectStack->head;
 		selectStack = selectStack->tail;
+
+		//Debugging
+		/*
+		if(*(int *)G_nodeInfo(GetAlias(n)) == 103)
+		{
+			int succount = 0;
+			for(G_nodeList succs = G_succ(n);succs;succs = succs->tail)
+			{
+				int *color = G_look(colorTab,GetAlias(succs->head));
+				if(*color == 2 || *color >= 10)
+				{
+					int seecolor = *color;
+					int seetemp = *(int *)G_nodeInfo(succs->head);
+					succount++;
+				}
+			}
+		}
+		*/
+		//Debugging end;
+
 		for(G_nodeList succs = G_succ(n);succs;succs = succs->tail)
 		{
 			int *color = G_look(colorTab,GetAlias(succs->head));
@@ -545,7 +565,8 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 		G_node cur = spilledNodes->head;
 		spilledNodes = spilledNodes->tail;
 		Temp_temp spilledtemp = Live_gtemp(cur);
-		off = F_Spill(f);
+		off = f->s_offset;
+		f->s_offset -= 8;
 		instr=il;
 		last = NULL;
 		while(instr)
@@ -577,7 +598,7 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 				//Replace spilledtemp by t.
 				*use = replaceTempList(*use,spilledtemp,t);
 				char *assem = checked_malloc(MAXLEN);
-				sprintf(assem,"#Spill load\nmovq (%s-%#x)(%rsp),`d0\n",fs,-off);
+				sprintf(assem,"# Spill load\nmovq (%s-%#x)(%rsp),`d0\n",fs,-off);
 				//Add the new instruction betfore the old one.
 				new_instr = AS_InstrList(AS_Oper(assem,Temp_TempList(t,NULL),NULL,AS_Targets(NULL)),instr);
 
@@ -602,7 +623,7 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 				}
 				*def = replaceTempList(*def,spilledtemp,t);
 				char *assem = checked_malloc(MAXLEN);
-				sprintf(assem,"#Spill store\nmovq `s0,(%s-%#x)(%rsp)\n",fs,-off);
+				sprintf(assem,"# Spill store\nmovq `s0,(%s-%#x)(%rsp)\n",fs,-off);
 				//Add the instruction after the old one.
 				instr->tail = AS_InstrList(AS_Oper(assem,NULL,Temp_TempList(t,NULL),AS_Targets(NULL)),next);
 				last = instr->tail;
@@ -610,6 +631,7 @@ static void RewriteProgram(F_frame f,AS_instrList *pil)
 			instr = next; 
 		}
 	}
+	f->s_offset += 8;
 	*pil = il;
 }
 

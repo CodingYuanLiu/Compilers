@@ -34,6 +34,7 @@ Tr_exp transTypeDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label labe
 Tr_exp transFunctionDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label);
 
 Ty_tyList makeFormalTyList(S_table tenv,A_fieldList params);
+U_boolList makeFormalEscList(A_fieldList param);
 
 //void SEM_transProg(A_exp exp);
 F_fragList SEM_transProg(A_exp exp);

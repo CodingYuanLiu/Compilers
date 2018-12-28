@@ -75,4 +75,13 @@ G_nodeList G_SubNodeList(G_nodeList left,G_nodeList right);
 /* Get the intersection of two node lists */
 G_nodeList G_IntersectNodeList(G_nodeList left,G_nodeList right);
 
+
+struct G_node_ {
+  G_graph mygraph;
+  int mykey;
+  G_nodeList succs;
+  G_nodeList preds;
+  void *info;
+};
+
 #endif

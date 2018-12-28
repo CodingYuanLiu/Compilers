@@ -149,15 +149,27 @@ F_frame F_newFrame(Temp_label name,U_boolList escapes)
 			temp = Temp_newtemp();
 			switch(num)
 			{
-				case 0: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDI())),NULL);tail = tail->tail;break;
-				case 1: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RSI())),NULL);tail = tail->tail;break;
-				case 2: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDX())),NULL);tail = tail->tail;break;
-				case 3: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RCX())),NULL);tail = tail->tail;break;
-				case 4: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R8())),NULL);tail = tail->tail;break;
-				case 5: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R9())),NULL);tail = tail->tail;break;
+				case 0: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDI())),NULL);tail = tail->tail;
+				ftail->tail = F_AccessList(InReg(temp),NULL);ftail = ftail->tail;
+				break;
+				case 1: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RSI())),NULL);tail = tail->tail;
+				ftail->tail = F_AccessList(InReg(temp),NULL);ftail = ftail->tail;
+				break;
+				case 2: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RDX())),NULL);tail = tail->tail;
+				ftail->tail = F_AccessList(InReg(temp),NULL);ftail = ftail->tail;
+				break;
+				case 3: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_RCX())),NULL);tail = tail->tail;
+				ftail->tail = F_AccessList(InReg(temp),NULL);ftail = ftail->tail;
+				break;
+				case 4: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R8())),NULL);tail = tail->tail;
+				ftail->tail = F_AccessList(InReg(temp),NULL);ftail = ftail->tail;
+				break;
+				case 5: tail->tail=T_StmList(T_Move(T_Temp(temp),T_Temp(F_R9())),NULL);tail = tail->tail;
+				ftail->tail = F_AccessList(InReg(temp),NULL);ftail = ftail->tail;
+				break;
 				default: printf("Frame: the 7-nth formal should be passed on frame.");
 			}
-			formals = F_AccessList(InReg(temp),formals);
+			//formals = F_AccessList(InReg(temp),formals);
 		}
 	}
 	formals = formals->tail;

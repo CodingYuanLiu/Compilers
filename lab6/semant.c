@@ -522,7 +522,7 @@ Tr_exp transVarDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label label
 				EM_error(d->pos,"type mismatch");
 			}
 		}
-		access = Tr_allocLocal(l,TRUE);//need to escape analyse
+		access = Tr_allocLocal(l,d->u.var.escape);//need to escape analyse
 		S_enter(venv,d->u.var.var,E_VarEntry(access,actual_ty(e.ty)));
 	}
 	return Tr_Assign(Tr_simpleVar(access,l),e.exp);
@@ -660,12 +660,15 @@ Tr_exp transFunctionDec(S_table venv,S_table tenv,A_dec d,Tr_level l,Temp_label 
 		Ty_tyList formalTys = makeFormalTyList(tenv,f->params);
 		
 		/*Make a new level*/
-		Temp_label name = Temp_newlabel();
-		U_boolList args = NULL;
+		Temp_label name = f->name;
+		U_boolList args = makeFormalEscList(f->params);
+		
+		/* Without escape analysis
 		for(Ty_tyList cal_arg = formalTys;cal_arg;cal_arg = cal_arg->tail)
 		{
 			args = U_BoolList(TRUE,args);//Assume that all params are escaped.
 		}
+		*/
 		Tr_level newl = Tr_newLevel(l,name,args);
 
 		/*Enter the name of the function without handling the body of it.*/
@@ -745,4 +748,13 @@ Ty_tyList makeFormalTyList(S_table tenv,A_fieldList params)
 	tyList = tyList->tail;
 	free(old);
 	return tyList;
+}
+
+U_boolList makeFormalEscList(A_fieldList params)
+{
+	if (params == NULL) 
+	{
+        return NULL;
+    }
+    return U_BoolList(params->head->escape, makeFormalEscList(params->tail));
 }

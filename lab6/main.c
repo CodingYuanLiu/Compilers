@@ -70,12 +70,12 @@ static void doProc(FILE *out, F_frame frame, T_stm body)
 
  AS_printInstrList(stdout, iList, Temp_layerMap(F_tempMap, Temp_name()));
  printf("----======before RA=======-----\n");
-	G_graph fg = FG_AssemFlowGraph(iList,frame);
-  /*
-  struct Live_graph live = Live_liveness(fg);
+ //G_graph fg = FG_AssemFlowGraph(iList,frame);
+  
+  //struct Live_graph live = Live_liveness(fg);
 
-  G_show(out,G_nodes(live.graph));
-  */
+  //G_show(out,G_nodes(live.graph));
+  
 struct RA_result ra = RA_regAlloc(frame, iList);  /* 11 */
 
 // fprintf(out, "BEGIN function\n");
@@ -162,7 +162,7 @@ int main(int argc, string *argv)
 
    //Lab 6: escape analysis
    //If you have implemented escape analysis, uncomment this
-   //Esc_findEscape(absyn_root); /* set varDec's escape field */
+   Esc_findEscape(absyn_root); /* set varDec's escape field */
 
    frags = SEM_transProg(absyn_root);
    if (anyErrors) return 1; /* don't continue */
