@@ -86,5 +86,5 @@ static G_table moveListTab;// binding points to a Live_movelist pointer.
 /* u in adjSet(u,v) can be replaced by G_inNodeList(u,G_adj(v)) */
 /* adjList[u] can be replaced by G_adj(u) */
 
-static string hard_reg[16] = {"none","%r10","%rbx","%rcx","%rdx","%rsi","%rdi","%rax","%r8","%r9","%rbp","%r11","%r12","%r13","%r14","%r15"};
+static string hard_reg[16] = {"none","%rax","%rbx","%rcx","%rdx","%rsi","%rdi","%rbp","%r8","%r9","%r10","%r11","%r12","%r13","%r14","%r15"};
 #endif

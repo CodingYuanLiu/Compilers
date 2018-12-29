@@ -453,31 +453,53 @@ Tr_exp Tr_While(Tr_exp test,Tr_exp body,Temp_label done)
 
 Tr_exp Tr_For(Tr_access loopv,Tr_exp lo,Tr_exp hi,Tr_exp body,Tr_level l,Temp_label done)
 {
+	/*
+		-----init-----
+		let 
+			var i = lo
+			var limit = hi
+		-----------checklohi----------
+		if(!(i <= limit))
+			goto done
+		-------------body-------------
+		bodylabel:
+			i++
+			body-statement
+		-------------test-------------
+		if(i<limit)
+			i++;
+			goto body;
+	*/
 	//Caution:check lo<=hi FIRST!
 	//check if i<hi before i++;
+	T_exp limit = T_Temp(Temp_newtemp());
 	Temp_label bodylabel = Temp_newlabel();
 	Temp_label incloop_label = Temp_newlabel();
+	T_exp loopvar = F_exp(loopv->access,T_Temp(F_FP()));
+
+	T_stm init = T_Seq(T_Move(loopvar, Tr_unEx(lo)), T_Move(limit, Tr_unEx(hi)));
 
 	//Stm makes i++
 	T_stm incloop;//Stm that makes i++;
-	T_exp loopvar = F_exp(loopv->access,T_Temp(F_FP()));
 	incloop = T_Move(loopvar,
 		T_Binop(T_plus,loopvar,T_Const(1)));
 
-	/*if(i < hi) {i++; goto body;}*/
-	T_stm test = T_Seq(T_Cjump(T_le,Tr_unEx(Tr_simpleVar(loopv,l)),Tr_unEx(hi),incloop_label,done),
+	/*if(i < limit) {i++; goto body;}*/
+	T_stm test = T_Seq(T_Cjump(T_le,Tr_unEx(Tr_simpleVar(loopv,l)),limit,incloop_label,done),
 	T_Seq(T_Label(incloop_label),
 		T_Seq(incloop,
 			T_Jump(T_Name(bodylabel),Temp_LabelList(bodylabel,NULL)))));
 
 	//Test if lo<=hi;
-	T_stm checklohi = T_Cjump(T_le,Tr_unEx(lo),Tr_unEx(hi),bodylabel,done);
+	T_stm checklohi = T_Cjump(T_le,loopvar,limit,bodylabel,done);
 
 	//Concatenate together.
-	T_stm forr = T_Seq(checklohi,
-	T_Seq(T_Label(bodylabel),
-		T_Seq(Tr_unNx(body),
-			T_Seq(test,T_Label(done)))));
+	T_stm forr = 
+	T_Seq(init,
+		T_Seq(checklohi,
+			T_Seq(T_Label(bodylabel),
+				T_Seq(Tr_unNx(body),
+					T_Seq(test,T_Label(done))))));
 	
 	return Tr_Nx(forr);
 }
