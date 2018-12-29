@@ -459,11 +459,10 @@ Tr_exp Tr_For(Tr_access loopv,Tr_exp lo,Tr_exp hi,Tr_exp body,Tr_level l,Temp_la
 			var i = lo
 			var limit = hi
 		-----------checklohi----------
-		if(!(i <= limit))
+		if(i > limit)
 			goto done
 		-------------body-------------
 		bodylabel:
-			i++
 			body-statement
 		-------------test-------------
 		if(i<limit)
@@ -485,7 +484,7 @@ Tr_exp Tr_For(Tr_access loopv,Tr_exp lo,Tr_exp hi,Tr_exp body,Tr_level l,Temp_la
 		T_Binop(T_plus,loopvar,T_Const(1)));
 
 	/*if(i < limit) {i++; goto body;}*/
-	T_stm test = T_Seq(T_Cjump(T_le,Tr_unEx(Tr_simpleVar(loopv,l)),limit,incloop_label,done),
+	T_stm test = T_Seq(T_Cjump(T_lt,Tr_unEx(Tr_simpleVar(loopv,l)),limit,incloop_label,done),
 	T_Seq(T_Label(incloop_label),
 		T_Seq(incloop,
 			T_Jump(T_Name(bodylabel),Temp_LabelList(bodylabel,NULL)))));
