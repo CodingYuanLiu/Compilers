@@ -311,9 +311,9 @@ static Temp_temp munchExp(T_exp e)
                     Temp_temp left = munchExp(e->u.BINOP.left);
 			        Temp_temp right = munchExp(e->u.BINOP.right);
                     emit(AS_Move("movq `s0, `d0", Temp_TempList(F_RAX(), NULL), Temp_TempList(left, NULL)));
-                    emit(AS_Oper("cltq",L(F_RAX(),L(F_RDX(),NULL)),L(F_RAX(),NULL),AS_Targets(NULL)));
+                    emit(AS_Oper("cltd",L(F_RAX(),L(F_RDX(),NULL)),L(F_RAX(),NULL),AS_Targets(NULL)));
                     emit(AS_Oper("idivq `s0",L(F_RAX(),L(F_RDX(),NULL)),
-                        L(F_RAX(), L(F_RDX(), L(right,NULL))),AS_Targets(NULL)));
+                        L(right,L(F_RAX(),L(F_RDX(),NULL))),AS_Targets(NULL)));
                     emit(AS_Move("movq `s0, `d0", Temp_TempList(r, NULL), Temp_TempList(F_RAX(), NULL)));
                     return r;
                 }
