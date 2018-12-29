@@ -82,7 +82,7 @@ Tr_exp Tr_Int(int value);
 Tr_exp Tr_String(string str);
 Tr_exp Tr_Call(Temp_label label,Tr_expList args,Tr_level caller,Tr_level callee);
 Tr_exp Tr_Calculate(A_oper op,Tr_exp left,Tr_exp right);
-Tr_exp Tr_Condition(A_oper op,Tr_exp left,Tr_exp right);
+Tr_exp Tr_Condition(A_oper op,Tr_exp left,Tr_exp right,bool isString);
 Tr_exp Tr_Recordexp(Tr_expList fields);
 T_stm Tr_mk_record_array(Tr_expList fields,Temp_temp r,int offset,int size);
 Tr_exp Tr_Assign(Tr_exp var,Tr_exp exp);

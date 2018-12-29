@@ -311,39 +311,50 @@ Tr_exp Tr_Calculate(A_oper op,Tr_exp left,Tr_exp right)
 	}
 }
 
-Tr_exp Tr_Condition(A_oper op,Tr_exp left,Tr_exp right)
+Tr_exp Tr_Condition(A_oper op,Tr_exp left,Tr_exp right,bool isString)
 {
 	T_stm stm;
+	T_exp le,ri;// left and right
+	if(isString)
+	{
+		le = F_externalCall("stringEqual", T_ExpList(Tr_unEx(left), T_ExpList(Tr_unEx(right), NULL)));
+		ri = T_Const(1);
+	}
+	else
+	{
+		le = Tr_unEx(left);
+		ri = Tr_unEx(right);
+	}
 	switch(op)
 	{
 		case A_eqOp:
 		{
-			stm = T_Cjump(T_eq,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			stm = T_Cjump(T_eq,le,ri,NULL,NULL);
 			break;
 		}
 		case A_neqOp:
 		{
-			stm = T_Cjump(T_ne,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			stm = T_Cjump(T_ne,le,ri,NULL,NULL);
 			break;
 		}
 		case A_ltOp:
 		{
-			stm = T_Cjump(T_lt,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			stm = T_Cjump(T_lt,le,ri,NULL,NULL);
 			break;
 		}
 		case A_leOp:
 		{
-			stm = T_Cjump(T_le,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			stm = T_Cjump(T_le,le,ri,NULL,NULL);
 			break;
 		}
 		case A_gtOp:
 		{
-			stm = T_Cjump(T_gt,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			stm = T_Cjump(T_gt,le,ri,NULL,NULL);
 			break;
 		}
 		case A_geOp:
 		{
-			stm = T_Cjump(T_ge,Tr_unEx(left),Tr_unEx(right),NULL,NULL);
+			stm = T_Cjump(T_ge,le,ri,NULL,NULL);
 			break;
 		}
 		default:

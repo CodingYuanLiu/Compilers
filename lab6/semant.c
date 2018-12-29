@@ -262,7 +262,12 @@ struct expty transOpexp(S_table venv, S_table tenv, A_exp a,Tr_level l,Temp_labe
 		{
 			EM_error(a->u.op.left->pos,"same type required");
 		}
-		tropexp = Tr_Condition(oper,left.exp,right.exp);
+		bool isString = FALSE;
+		if(actual_ty(left.ty) == Ty_String())
+		{
+			isString = TRUE;
+		}
+		tropexp = Tr_Condition(oper,left.exp,right.exp,isString);
 	}
 	return expTy(tropexp,Ty_Int());
 }
